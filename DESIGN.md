@@ -295,8 +295,71 @@ interface AgentConfig {
 - [ ] 设置页面
 - [ ] 错误处理 + 用户体验优化
 
-## 8. 参考
+## 8. 法律声明与参考来源
 
-- [zotero-gpt](https://github.com/MuiseDestiny/zotero-gpt) - RAG 实现参考
+### ⚠️ 重要声明
+
+本项目为**独立开发**，不基于任何闭源/商业软件：
+
+| 项目 | 状态 | 是否参考 |
+|------|------|----------|
+| zotero-gpt Pro (Gitee) | ❌ 闭源商业版 | **不参考、不逆向** |
+| zotero-gpt GitHub (tag 2.2.3) | ✅ 开源 AGPL | 可参考架构思路 |
+| zotero-plugin-template | ✅ 开源 AGPL | 基础模板 |
+| seerai | ✅ 开源 MIT | API 集成参考 |
+
+### 允许参考的开源项目
+
+仅参考以下**开源且许可证允许**的项目：
+
+1. **zotero-gpt GitHub 开源版**
+   - 地址: https://github.com/MuiseDestiny/zotero-gpt
+   - 版本: tag 2.2.3 (commit 前)
+   - 许可: AGPL-3.0
+   - 参考内容: RAG 架构思路、Zotero API 用法
+   - **不参考**: Gitee 上的 Pro 版任何代码
+
+2. **seerai**
+   - 地址: https://github.com/dralkh/seerai
+   - 许可: MIT
+   - 参考内容: Semantic Scholar API 集成
+
+3. **zotero-plugin-template**
+   - 地址: https://github.com/windingwind/zotero-plugin-template
+   - 许可: AGPL-3.0
+   - 参考内容: 插件基础结构
+
+### 独立实现的功能
+
+以下功能将**完全独立实现**，不参考任何闭源代码：
+
+- [ ] Chat UI 界面
+- [ ] 搜索服务 (arXiv/PubMed/Semantic Scholar/CNKI)
+- [ ] PDF 下载逻辑
+- [ ] RAG 实现 (Embedding + 向量搜索)
+- [ ] LLM 调用 (豆包 API)
+
+### 许可证
+
+本项目采用 **AGPL-3.0** 许可证，与 zotero-plugin-template 保持一致。
+
+## 9. 参考资料
+
+### 开源项目 (可参考)
+
+- [zotero-gpt (GitHub 开源版)](https://github.com/MuiseDestiny/zotero-gpt) - RAG 架构参考 (仅 tag 2.2.3)
 - [zotero-plugin-template](https://github.com/windingwind/zotero-plugin-template) - 插件模板
 - [seerai](https://github.com/dralkh/seerai) - Semantic Scholar 集成参考
+
+### 官方文档
+
+- [Zotero Plugin Development](https://www.zotero.org/support/dev/zotero_7_for_developers)
+- [arXiv API](https://info.arxiv.org/help/api/index.html)
+- [PubMed E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/)
+- [Semantic Scholar API](https://api.semanticscholar.org/)
+- [火山引擎豆包 API](https://www.volcengine.com/docs/82379)
+
+### 禁止参考
+
+- ❌ zotero-gpt Pro 版 (Gitee 闭源商业版)
+- ❌ 任何需要付费/闭源的插件代码
