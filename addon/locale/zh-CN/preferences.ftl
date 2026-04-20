@@ -1,5 +1,9 @@
-pref-title = 插件模板设置示例
-pref-enable =
-    .label = 开启
-pref-input = 输入
+pref-title = Zotero Agent 设置
+pref-provider = LLM 提供商
+pref-apikey = API 密钥
+pref-apibase = API 地址
+pref-model = 模型
+pref-test-connection = 测试连接
+pref-test-success = ✓ 连接成功
+pref-test-fail = ✗ 连接失败
 pref-help = { $name } Build { $version } { $time }

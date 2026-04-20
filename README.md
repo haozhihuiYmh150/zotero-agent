@@ -1,58 +1,86 @@
 # Zotero Agent
 
-[![zotero target version](https://img.shields.io/badge/Zotero-7-green?style=flat-square&logo=zotero&logoColor=CC2936)](https://www.zotero.org)
-[![Using Zotero Plugin Template](https://img.shields.io/badge/Using-Zotero%20Plugin%20Template-blue?style=flat-square&logo=github)](https://github.com/windingwind/zotero-plugin-template)
+Zotero 的 AI 助手插件，帮你阅读、总结、理解论文。
 
-AI-powered research assistant for Zotero - search, download, and analyze papers with LLM.
+## 特点
 
-## Features (Planned)
+- **纯对话交互** - 像聊天一样使用，无需学习复杂操作
+- **斜杠命令配置** - 在对话框中输入 `/` 命令即可完成配置，无需打开设置界面
+- **支持多种 AI** - 豆包、DeepSeek、OpenAI 等，任选其一
+- **浮动面板** - 可拖拽、可调整大小，不影响正常使用 Zotero
+- **论文下载** - 支持从 arXiv 搜索和下载论文（更多来源开发中：PubMed、Semantic Scholar...）
 
-- 🔍 **Paper Search**: Search papers from arXiv, Semantic Scholar
-- 📥 **PDF Download**: Download PDFs and import to Zotero
-- 🤖 **RAG + LLM**: Ask questions about your papers with AI (Doubao/OpenAI)
-- 🌐 **Chinese API Support**: Native support for Chinese LLM APIs
+## 安装
 
-## Development
+1. 从 [Releases](../../releases) 下载 `zotero-agent.xpi`
+2. 打开 Zotero → 菜单 `工具` → `附加组件`
+3. 点击右上角 ⚙️ → `从文件安装附加组件` → 选择下载的文件
+4. 重启 Zotero
 
-### Prerequisites
+## 使用示例
 
-- Node.js (LTS version)
-- Git
-- Zotero 7 Beta
+点击右下角的 🦆 图标打开对话框。
 
-### Setup
+### 配置 AI（首次使用）
 
-```bash
-# Install dependencies
-npm install
+直接在对话框输入命令，按回车执行：
 
-# Start development mode (with hot reload)
-npm run start
-
-# Build for production
-npm run build
+```
+/apibase https://ark.cn-beijing.volces.com/api/v3
+/apikey 12a92e6f-8bbc-44b4-81c7-xxxxxxxxxxxx
+/model doubao-seed-2-0-pro-260215
 ```
 
-### Commands
+输入 `/config` 确认配置是否成功。
 
-| Command | Description |
-|---------|-------------|
-| `npm run start` | Start dev server with hot reload |
-| `npm run build` | Build production XPI |
-| `npm run lint:check` | Check code style |
-| `npm run lint:fix` | Fix code style |
+### 论文问答
 
-## Template Info
+选中一篇论文，直接问：
 
-This plugin is based on [zotero-plugin-template](https://github.com/windingwind/zotero-plugin-template).
+```
+你好
+> 你好！我是Zotero学术研究助手...
 
-| Item | Value |
-|------|-------|
-| Template Repo | https://github.com/windingwind/zotero-plugin-template |
-| Branch | main |
-| Commit | `306d4e2a0959a7b2f5e44bb38169fb25f841dbaf` |
-| Commit Date | 2025-12-16 |
+总结这篇论文
+> 这篇论文主要研究了...
 
-## License
+这篇论文用了什么方法？
+> 论文采用了以下方法：1. ...
+```
+
+### 选中文本总结
+
+在 PDF 阅读器中选中一段文字，然后问：
+
+```
+总结选中的段落
+> 这段内容主要讲述了...
+```
+
+### 搜索下载论文
+
+```
+搜索 attention mechanism 相关论文
+> 找到以下论文：1. Attention Is All You Need ...
+
+下载第一篇
+> 正在下载并导入到 Zotero...
+```
+
+## 命令列表
+
+输入 `/` 会弹出命令菜单，用方向键选择，回车确认。
+
+| 命令 | 说明 |
+|------|------|
+| `/apibase <地址>` | 设置 API 地址 |
+| `/apikey <密钥>` | 设置 API 密钥 |
+| `/model <模型名>` | 设置模型 |
+| `/config` | 查看当前配置 |
+| `/reset` | 重置所有配置 |
+| `/clear` | 清空对话历史 |
+| `/help` | 显示帮助 |
+
+## 开源协议
 
 AGPL-3.0-or-later

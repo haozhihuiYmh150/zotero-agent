@@ -3,7 +3,7 @@ import pkg from "./package.json";
 
 export default defineConfig({
   source: ["src", "addon"],
-  dist: ".scaffold/build",
+  dist: "build",
   name: pkg.config.addonName,
   id: pkg.config.addonID,
   namespace: pkg.config.addonRef,
@@ -12,6 +12,10 @@ export default defineConfig({
   }`,
   xpiDownloadLink:
     "https://github.com/{{owner}}/{{repo}}/releases/download/v{{version}}/{{xpiName}}.xpi",
+
+  server: {
+    asProxy: true,
+  },
 
   build: {
     assets: ["addon/**/*.*"],
@@ -34,7 +38,7 @@ export default defineConfig({
         },
         bundle: true,
         target: "firefox115",
-        outfile: `.scaffold/build/addon/content/scripts/${pkg.config.addonRef}.js`,
+        outfile: `build/addon/content/scripts/${pkg.config.addonRef}.js`,
       },
     ],
   },

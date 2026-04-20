@@ -9,3 +9,13 @@ item-section-example2-sidenav-tooltip =
 item-section-example2-button-tooltip =
     .tooltiptext = 移除此面板
 item-info-row-example-label = 示例行
+
+menuitem-label = 示例菜单项
+menupopup-label = 示例菜单弹出
+menuitem-submenulabel = 示例子菜单项
+menuitem-filemenulabel = 示例文件菜单项
+
+sidebar-header =
+    .label = Zotero Agent
+sidebar-tooltip =
+    .tooltiptext = AI 研究助手

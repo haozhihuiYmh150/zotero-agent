@@ -1,5 +1,9 @@
-pref-title = Addon Template Example
-pref-enable =
-    .label = Enable
-pref-input = Input
+pref-title = Zotero Agent Settings
+pref-provider = LLM Provider
+pref-apikey = API Key
+pref-apibase = API Base URL
+pref-model = Model
+pref-test-connection = Test Connection
+pref-test-success = ✓ Connection successful
+pref-test-fail = ✗ Connection failed
 pref-help = { $name } Build { $version } { $time }
