@@ -231,16 +231,102 @@ src/
     └── similarity.ts        # 相似度计算
 ```
 
-## 6. 配置项
+## 6. 成本估算
+
+### 6.1 云端方案 (推荐)
+
+**优点**: 零配置、效果好、无需 GPU
+
+| 服务 | 提供商 | 价格 | 说明 |
+|------|--------|------|------|
+| **LLM 对话** | 豆包 | ¥0.8/百万tokens | doubao-seed-2-0-pro |
+| **Embedding** | 豆包 | ¥0.5/百万tokens | doubao-embedding |
+| **LLM 对话** | DeepSeek | ¥1/百万tokens | deepseek-chat |
+| **LLM 对话** | OpenAI | ¥7/百万tokens | gpt-4o-mini |
+
+**典型使用成本估算**:
+
+| 场景 | Token 消耗 | 成本 (豆包) |
+|------|------------|-------------|
+| 单篇论文 Embedding | ~8K tokens | ¥0.004 |
+| 单次问答 (含上下文) | ~2K tokens | ¥0.0016 |
+| 日均使用 (10篇+50次问答) | ~180K tokens | ¥0.14 |
+| **月均成本** | ~5M tokens | **¥4-5** |
+
+### 6.2 本地方案 (可选)
+
+**优点**: 完全免费、隐私保护、离线可用
+
+| 组件 | 模型 | 显存需求 | CPU 可用 |
+|------|------|----------|----------|
+| **Embedding** | bge-large-zh | 1.3GB | ✅ (慢) |
+| **Embedding** | bge-m3 | 2GB | ✅ (慢) |
+| **LLM** | Qwen2.5-7B | 16GB | ❌ |
+| **LLM** | Qwen2.5-1.5B | 4GB | ✅ (很慢) |
+
+**本地部署要求**:
+
+| 配置 | 最低要求 | 推荐配置 |
+|------|----------|----------|
+| 仅 Embedding | 8GB RAM | 16GB RAM |
+| Embedding + 小 LLM | 16GB RAM + 4GB VRAM | 32GB RAM + 8GB VRAM |
+| 完整本地方案 | - | RTX 3090/4090 |
+
+### 6.3 混合方案 (平衡)
+
+```
+本地 Embedding (免费) + 云端 LLM (付费)
+```
+
+| 组件 | 方案 | 成本 |
+|------|------|------|
+| Embedding | 本地 bge-large-zh | 免费 |
+| LLM | 云端豆包 | ¥0.8/百万tokens |
+
+**月均成本: ¥2-3** (仅 LLM 调用)
+
+### 6.4 默认配置建议
+
+```typescript
+// 默认配置 (云端方案)
+const defaultConfig = {
+  llm: {
+    provider: 'doubao',
+    model: 'doubao-seed-2-0-pro-260215',
+    // 成本: ¥0.8/百万tokens
+  },
+  embedding: {
+    provider: 'doubao',
+    model: 'doubao-embedding',
+    // 成本: ¥0.5/百万tokens
+  }
+};
+
+// 高级用户可选本地方案
+const localConfig = {
+  llm: {
+    provider: 'local',
+    model: 'qwen2.5-7b-instruct',
+    endpoint: 'http://localhost:11434',  // Ollama
+  },
+  embedding: {
+    provider: 'local',
+    model: 'bge-large-zh',
+  }
+};
+```
+
+## 7. 配置项
 
 ```typescript
 interface AgentConfig {
   // LLM 设置
   llm: {
-    provider: 'doubao' | 'openai' | 'custom';
-    apiKey: string;
-    apiBase: string;
+    provider: 'doubao' | 'deepseek' | 'openai' | 'local' | 'custom';
+    apiKey?: string;
+    apiBase?: string;
     model: string;
+    endpoint?: string;  // 本地模型 endpoint (如 Ollama)
   };
 
   // Embedding 设置
@@ -248,6 +334,7 @@ interface AgentConfig {
     provider: 'doubao' | 'openai' | 'local';
     apiKey?: string;
     model?: string;
+    localModel?: 'bge-large-zh' | 'bge-m3' | 'm3e-base';
   };
 
   // 搜索设置
