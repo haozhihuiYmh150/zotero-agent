@@ -1,6 +1,6 @@
 # Zotero Agent
 
-Zotero 的 AI 助手插件，帮你阅读、总结、理解论文。
+Zotero 7 的 AI 助手插件，帮你阅读、总结、理解论文。
 
 ## 特点
 
@@ -13,8 +13,8 @@ Zotero 的 AI 助手插件，帮你阅读、总结、理解论文。
 ## 安装
 
 1. 从 [Releases](../../releases) 下载 `zotero-agent.xpi`
-2. 打开 Zotero → 菜单 `工具` → `附加组件`
-3. 点击右上角 ⚙️ → `从文件安装附加组件` → 选择下载的文件
+2. 打开 Zotero → 菜单 `Tools` → `Plugins`
+3. 点击右上角 ⚙️ → `Install Plugin From File...` → 选择下载的文件
 4. 重启 Zotero
 
 ## 使用示例
@@ -57,13 +57,13 @@ Zotero 的 AI 助手插件，帮你阅读、总结、理解论文。
 > 这段内容主要讲述了...
 ```
 
-### 搜索下载论文
+### 从 arXiv 搜索下载论文
 
 ```
-搜索 attention mechanism 相关论文
+去 arXiv 搜索 attention mechanism 相关论文
 > 找到以下论文：1. Attention Is All You Need ...
 
-下载第一篇
+下载 1
 > 正在下载并导入到 Zotero...
 ```
 
