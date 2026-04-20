@@ -75,8 +75,20 @@
 |------|-----|------|
 | arXiv | arxiv.org/api | 预印本，免费全文 |
 | Semantic Scholar | api.semanticscholar.org | 引用数据丰富 |
+| **PubMed** | eutils.ncbi.nlm.nih.gov | 生物医学，免费 API |
+| **知网 (CNKI)** | (需爬虫/非官方) | 中文文献，需登录 |
 | CrossRef | api.crossref.org | DOI 元数据 |
 | Google Scholar | (需爬虫) | 覆盖广，但无官方 API |
+
+**数据源特点**:
+
+| 来源 | 免费 API | 全文下载 | 中文支持 | 备注 |
+|------|----------|----------|----------|------|
+| arXiv | ✅ | ✅ 免费 | ❌ | 计算机/物理/数学 |
+| Semantic Scholar | ✅ | 部分 | ❌ | 引用网络强 |
+| PubMed | ✅ | 部分 (PMC) | ❌ | 生物医学必备 |
+| 知网 | ❌ | 需订阅 | ✅ | 中文核心期刊 |
+| CrossRef | ✅ | ❌ | 部分 | 仅元数据 |
 
 **搜索流程**:
 
@@ -204,6 +216,8 @@ src/
 ├── integrations/            # 外部 API 集成
 │   ├── ArxivAPI.ts
 │   ├── SemanticScholarAPI.ts
+│   ├── PubMedAPI.ts
+│   ├── CNKIAPI.ts
 │   ├── DoubaoAPI.ts
 │   └── EmbeddingAPI.ts
 │
@@ -238,7 +252,7 @@ interface AgentConfig {
 
   // 搜索设置
   search: {
-    sources: ('arxiv' | 'semanticscholar' | 'crossref')[];
+    sources: ('arxiv' | 'semanticscholar' | 'pubmed' | 'cnki' | 'crossref')[];
     maxResults: number;
     defaultSort: 'relevance' | 'citations' | 'date';
   };
