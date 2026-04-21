@@ -97,7 +97,7 @@ export interface Tool {
     callbacks: {
       onStatus?: StatusCallback;
       onStream?: StreamCallback;
-    }
+    },
   ): Promise<ToolResult>;
 }
 
@@ -109,7 +109,11 @@ export abstract class BaseTool implements Tool {
   abstract description: string;
   abstract parameters: Tool["parameters"];
 
-  protected log(level: "info" | "debug" | "warn" | "error", message: string, ...args: any[]) {
+  protected log(
+    level: "info" | "debug" | "warn" | "error",
+    message: string,
+    ...args: any[]
+  ) {
     Logger[level](`Tool:${this.name}`, message, ...args);
   }
 
@@ -119,7 +123,7 @@ export abstract class BaseTool implements Tool {
     callbacks: {
       onStatus?: StatusCallback;
       onStream?: StreamCallback;
-    }
+    },
   ): Promise<ToolResult>;
 
   /**
@@ -135,7 +139,7 @@ export abstract class BaseTool implements Tool {
           this.parameters.map((p) => [
             p.name,
             { type: "string", description: p.description },
-          ])
+          ]),
         ),
         required: this.parameters.filter((p) => p.required).map((p) => p.name),
       },

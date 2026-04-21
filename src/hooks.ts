@@ -1,6 +1,9 @@
 import { AgentCore } from "./modules/agent";
 import { SidePanel } from "./modules/sidePanel";
-import { registerPrefsScripts, testConnection } from "./modules/preferenceScript";
+import {
+  registerPrefsScripts,
+  testConnection,
+} from "./modules/preferenceScript";
 import { getString, initLocale } from "./utils/locale";
 import { createZToolkit } from "./utils/ztoolkit";
 

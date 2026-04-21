@@ -13,7 +13,12 @@ import { Logger } from "../utils/logger";
 export class AgentCore {
   private static llmService: LLMService | null = null;
   // Global chat history - shared across all tabs
-  private static chatHistory: Array<{ role: string; content: string; isUser: boolean; id: string }> = [];
+  private static chatHistory: Array<{
+    role: string;
+    content: string;
+    isUser: boolean;
+    id: string;
+  }> = [];
   // Save recent arXiv search results for downloading
   private static lastArxivResults: ArxivPaper[] = [];
 
@@ -170,16 +175,23 @@ export class AgentCore {
           // sidenav button click event
           const itemPane = body.closest("item-pane, .item-pane");
           if (itemPane) {
-            const agentNavButton = itemPane.querySelector('[data-pane="zotero-agent-chat"]') ||
-                                   itemPane.querySelector('toolbarbutton[data-l10n-id*="agent"]');
-            if (agentNavButton && !agentNavButton.getAttribute("data-exclusive-bound")) {
+            const agentNavButton =
+              itemPane.querySelector('[data-pane="zotero-agent-chat"]') ||
+              itemPane.querySelector('toolbarbutton[data-l10n-id*="agent"]');
+            if (
+              agentNavButton &&
+              !agentNavButton.getAttribute("data-exclusive-bound")
+            ) {
               agentNavButton.setAttribute("data-exclusive-bound", "true");
               agentNavButton.addEventListener("click", () => {
                 // Re-find current chat container on click
                 const doc = ztoolkit.getGlobal("document");
-                const currentContainer = doc.querySelector("#agent-chat-container");
+                const currentContainer = doc.querySelector(
+                  "#agent-chat-container",
+                );
                 if (currentContainer) {
-                  const currentBody = currentContainer.parentElement as HTMLElement;
+                  const currentBody =
+                    currentContainer.parentElement as HTMLElement;
                   AgentCore.scrollToAgent(currentBody);
                 }
               });
@@ -197,7 +209,9 @@ export class AgentCore {
         // Setup layout on each render
         AgentCore.setupChatLayout(body);
 
-        const messagesDiv = body.querySelector("#agent-chat-messages") as HTMLElement;
+        const messagesDiv = body.querySelector(
+          "#agent-chat-messages",
+        ) as HTMLElement;
 
         // If there's chat history, restore it (replace welcome message)
         if (messagesDiv && AgentCore.chatHistory.length > 0) {
@@ -207,7 +221,9 @@ export class AgentCore {
           }
         }
 
-        const input = body.querySelector("#agent-chat-input") as HTMLInputElement;
+        const input = body.querySelector(
+          "#agent-chat-input",
+        ) as HTMLInputElement;
         if (input && !input.dataset.bound) {
           input.dataset.bound = "true";
 
@@ -227,7 +243,9 @@ export class AgentCore {
 
               Logger.info("Chat", "User question", question);
 
-              const messagesDiv = body.querySelector("#agent-chat-messages") as HTMLElement;
+              const messagesDiv = body.querySelector(
+                "#agent-chat-messages",
+              ) as HTMLElement;
               if (!messagesDiv) return;
 
               // Clear welcome message (only on first send)
@@ -250,11 +268,18 @@ export class AgentCore {
               }
 
               // Check if it's an arXiv search request
-              const isArxivSearch = /arxiv|arXiv|查找.*论文|搜索.*论文|相关.*论文|找.*文献/.test(question);
+              const isArxivSearch =
+                /arxiv|arXiv|查找.*论文|搜索.*论文|相关.*论文|找.*文献/.test(
+                  question,
+                );
 
               // Show loading
-              const loadingId = AgentCore.appendMessage(messagesDiv,
-                isArxivSearch ? "正在搜索 arXiv..." : "思考中...", false, true);
+              const loadingId = AgentCore.appendMessage(
+                messagesDiv,
+                isArxivSearch ? "正在搜索 arXiv..." : "思考中...",
+                false,
+                true,
+              );
 
               try {
                 // Check API Key (arXiv search doesn't need it, but LLM does)
@@ -263,12 +288,20 @@ export class AgentCore {
                 // Get current paper context
                 const ZoteroPane = ztoolkit.getGlobal("ZoteroPane");
                 const selectedItems = ZoteroPane.getSelectedItems();
-                const currentItem = selectedItems.length > 0 ? selectedItems[0] : null;
-                const metadata = currentItem ? PDFService.getItemMetadata(currentItem) : null;
+                const currentItem =
+                  selectedItems.length > 0 ? selectedItems[0] : null;
+                const metadata = currentItem
+                  ? PDFService.getItemMetadata(currentItem)
+                  : null;
 
                 // Handle arXiv search
                 if (isArxivSearch) {
-                  await AgentCore.handleArxivSearch(messagesDiv, loadingId, question, metadata);
+                  await AgentCore.handleArxivSearch(
+                    messagesDiv,
+                    loadingId,
+                    question,
+                    metadata,
+                  );
                   return;
                 }
 
@@ -276,13 +309,21 @@ export class AgentCore {
                 if (!apiKey) {
                   Logger.warn("Chat", "API Key not configured");
                   AgentCore.removeMessage(messagesDiv, loadingId);
-                  AgentCore.appendMessage(messagesDiv, "请先在设置中配置 API Key", false);
+                  AgentCore.appendMessage(
+                    messagesDiv,
+                    "请先在设置中配置 API Key",
+                    false,
+                  );
                   return;
                 }
 
                 // Check if there's selected text in PDF
                 const selectedText = PDFService.getSelectedText();
-                Logger.debug("Chat", "Selected text", selectedText ? `${selectedText.length} chars` : "none");
+                Logger.debug(
+                  "Chat",
+                  "Selected text",
+                  selectedText ? `${selectedText.length} chars` : "none",
+                );
                 Logger.debug("Chat", "Current item", metadata?.title || "none");
 
                 // Build context
@@ -310,22 +351,32 @@ ${selectedText}
                         itemId: currentItem.id,
                         itemType: currentItem.itemType,
                       });
-                      const pdfItem = await PDFService.getPDFAttachment(currentItem);
+                      const pdfItem =
+                        await PDFService.getPDFAttachment(currentItem);
                       Logger.debug("Chat", "PDF attachment result", {
                         found: !!pdfItem,
                         pdfItemId: pdfItem?.id,
                         pdfContentType: pdfItem?.attachmentContentType,
                       });
                       if (pdfItem) {
-                        let fullText = await PDFService.extractFullText(pdfItem);
+                        let fullText =
+                          await PDFService.extractFullText(pdfItem);
                         fullText = PDFService.truncateText(fullText, 4000);
-                        Logger.debug("Chat", "PDF text extracted", `${fullText.length} chars`);
+                        Logger.debug(
+                          "Chat",
+                          "PDF text extracted",
+                          `${fullText.length} chars`,
+                        );
                         context += `论文内容：
 ${fullText}
 
 `;
                       } else {
-                        Logger.warn("Chat", "No PDF attachment found for item", { itemId: currentItem.id });
+                        Logger.warn(
+                          "Chat",
+                          "No PDF attachment found for item",
+                          { itemId: currentItem.id },
+                        );
                       }
                     } catch (e: any) {
                       Logger.error("Chat", "Failed to extract PDF", {
@@ -336,7 +387,11 @@ ${fullText}
                   }
                 }
 
-                Logger.debug("Chat", "Context length", `${context.length} chars`);
+                Logger.debug(
+                  "Chat",
+                  "Context length",
+                  `${context.length} chars`,
+                );
 
                 const systemPrompt = `你是 Zotero Agent，一个学术研究助手。请用中文回答用户的问题。如果用户提供了选中的文本，请针对该选中内容回答。如果用户询问的是当前论文相关的问题，请基于提供的论文内容回答。回答要简洁、准确、专业。`;
 
@@ -347,14 +402,22 @@ ${fullText}
                   { role: "user", content: context + "用户问题：" + question },
                 ]);
 
-                Logger.info("Chat", "LLM response received", `${response.length} chars`);
+                Logger.info(
+                  "Chat",
+                  "LLM response received",
+                  `${response.length} chars`,
+                );
 
                 AgentCore.removeMessage(messagesDiv, loadingId);
                 AgentCore.appendMessage(messagesDiv, response, false);
               } catch (error: any) {
                 Logger.error("Chat", "Error", error.message);
                 AgentCore.removeMessage(messagesDiv, loadingId);
-                AgentCore.appendMessage(messagesDiv, `错误: ${error.message}`, false);
+                AgentCore.appendMessage(
+                  messagesDiv,
+                  `错误: ${error.message}`,
+                  false,
+                );
               }
             }
           });
@@ -366,12 +429,22 @@ ${fullText}
   /**
    * Add message to chat area and save to history
    */
-  private static appendMessage(container: HTMLElement, text: string, isUser: boolean, isLoading = false): string {
+  private static appendMessage(
+    container: HTMLElement,
+    text: string,
+    isUser: boolean,
+    isLoading = false,
+  ): string {
     const msgId = `msg-${Date.now()}`;
 
     // Non-loading messages saved to history
     if (!isLoading) {
-      this.chatHistory.push({ role: isUser ? "user" : "assistant", content: text, isUser, id: msgId });
+      this.chatHistory.push({
+        role: isUser ? "user" : "assistant",
+        content: text,
+        isUser,
+        id: msgId,
+      });
       // Sync to all open panels
       this.syncMessageToAllPanels(text, isUser, msgId);
     }
@@ -385,7 +458,13 @@ ${fullText}
   /**
    * Render single message to container
    */
-  private static renderMessageToContainer(container: HTMLElement, text: string, isUser: boolean, isLoading: boolean, msgId: string) {
+  private static renderMessageToContainer(
+    container: HTMLElement,
+    text: string,
+    isUser: boolean,
+    isLoading: boolean,
+    msgId: string,
+  ) {
     const doc = container.ownerDocument;
     if (!doc) return;
 
@@ -433,11 +512,21 @@ ${fullText}
   /**
    * Sync message to all open Agent panels
    */
-  private static syncMessageToAllPanels(text: string, isUser: boolean, msgId: string) {
+  private static syncMessageToAllPanels(
+    text: string,
+    isUser: boolean,
+    msgId: string,
+  ) {
     const doc = ztoolkit.getGlobal("document");
     const allMessageDivs = doc.querySelectorAll("#agent-chat-messages");
     allMessageDivs.forEach((messagesDiv: Element) => {
-      this.renderMessageToContainer(messagesDiv as HTMLElement, text, isUser, false, msgId);
+      this.renderMessageToContainer(
+        messagesDiv as HTMLElement,
+        text,
+        isUser,
+        false,
+        msgId,
+      );
     });
   }
 
@@ -450,10 +539,18 @@ ${fullText}
 
     // Restore all history messages
     for (const msg of this.chatHistory) {
-      this.renderMessageToContainer(container, msg.content, msg.isUser, false, msg.id);
+      this.renderMessageToContainer(
+        container,
+        msg.content,
+        msg.isUser,
+        false,
+        msg.id,
+      );
     }
 
-    Logger.debug("Chat", "Restored chat history", { count: this.chatHistory.length });
+    Logger.debug("Chat", "Restored chat history", {
+      count: this.chatHistory.length,
+    });
   }
 
   /**
@@ -510,10 +607,13 @@ ${fullText}
     }
 
     // Show progress
-    const progressWin = new ztoolkit.ProgressWindow(addon.data.config.addonName, {
-      closeOnClick: false,
-      closeTime: -1,
-    })
+    const progressWin = new ztoolkit.ProgressWindow(
+      addon.data.config.addonName,
+      {
+        closeOnClick: false,
+        closeTime: -1,
+      },
+    )
       .createLine({
         text: getString("progress-extracting"),
         type: "default",
@@ -523,7 +623,10 @@ ${fullText}
 
     try {
       // Extract PDF text
-      progressWin.changeLine({ text: getString("progress-extracting"), progress: 30 });
+      progressWin.changeLine({
+        text: getString("progress-extracting"),
+        progress: 30,
+      });
       let fullText = await PDFService.extractFullText(pdfItem);
 
       // Get metadata
@@ -533,7 +636,10 @@ ${fullText}
       fullText = PDFService.truncateText(fullText, 6000);
 
       // Call LLM to summarize
-      progressWin.changeLine({ text: getString("progress-summarizing"), progress: 60 });
+      progressWin.changeLine({
+        text: getString("progress-summarizing"),
+        progress: 60,
+      });
 
       const prompt = `论文标题：${metadata.title}
 作者：${metadata.authors}
@@ -552,12 +658,14 @@ ${fullText}
       const llmService = AgentCore.getLLMService();
       const summary = await llmService.summarize(prompt, "zh");
 
-      progressWin.changeLine({ text: getString("progress-done"), progress: 100 });
+      progressWin.changeLine({
+        text: getString("progress-done"),
+        progress: 100,
+      });
       progressWin.startCloseTimer(2000);
 
       // Show result dialog
       AgentCore.showResultDialog(metadata.title, summary);
-
     } catch (error: any) {
       progressWin.changeLine({
         text: `Error: ${error.message}`,
@@ -619,7 +727,9 @@ ${fullText}
               {
                 type: "click",
                 listener: () => {
-                  new ztoolkit.Clipboard().addText(content, "text/unicode").copy();
+                  new ztoolkit.Clipboard()
+                    .addText(content, "text/unicode")
+                    .copy();
                   AgentCore.showNotification(getString("copied"), "success");
                 },
               },
@@ -665,7 +775,10 @@ ${fullText}
   /**
    * Show notification
    */
-  static showNotification(message: string, type: "success" | "error" | "default" = "default") {
+  static showNotification(
+    message: string,
+    type: "success" | "error" | "default" = "default",
+  ) {
     new ztoolkit.ProgressWindow(addon.data.config.addonName, {
       closeOnClick: true,
       closeTime: 3000,
@@ -700,7 +813,9 @@ ${fullText}
    * Setup chat area layout - CSS already configured, just logging here
    */
   static setupChatLayout(body: HTMLElement) {
-    const container = body.querySelector("#agent-chat-container") as HTMLElement;
+    const container = body.querySelector(
+      "#agent-chat-container",
+    ) as HTMLElement;
     if (!container) {
       Logger.warn("Layout", "setupChatLayout: container not found");
       return;
@@ -717,7 +832,9 @@ ${fullText}
    * Scroll messages to bottom
    */
   static scrollMessagesToBottom(body: HTMLElement) {
-    const messagesDiv = body.querySelector("#agent-chat-messages") as HTMLElement;
+    const messagesDiv = body.querySelector(
+      "#agent-chat-messages",
+    ) as HTMLElement;
     if (messagesDiv) {
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
@@ -742,7 +859,10 @@ ${fullText}
     const availableHeight = paneRect.bottom - sectionRect.top - 20;
 
     // Set minimum height 300px, max not exceeding available space
-    const targetHeight = Math.max(300, Math.min(availableHeight, paneRect.height * 0.7));
+    const targetHeight = Math.max(
+      300,
+      Math.min(availableHeight, paneRect.height * 0.7),
+    );
 
     sectionBody.style.height = `${targetHeight}px`;
     sectionBody.style.maxHeight = `${targetHeight}px`;
@@ -763,7 +883,9 @@ ${fullText}
    */
   static verifyLayout(body: HTMLElement): boolean {
     const input = body.querySelector("#agent-chat-input") as HTMLElement;
-    const messagesDiv = body.querySelector("#agent-chat-messages") as HTMLElement;
+    const messagesDiv = body.querySelector(
+      "#agent-chat-messages",
+    ) as HTMLElement;
 
     if (!input || !messagesDiv) {
       Logger.warn("Layout", "Layout elements not found");
@@ -775,11 +897,14 @@ ${fullText}
     const viewportHeight = win.innerHeight;
 
     // Check if input box is within viewport
-    const inputVisible = inputRect.top >= 0 && inputRect.bottom <= viewportHeight;
+    const inputVisible =
+      inputRect.top >= 0 && inputRect.bottom <= viewportHeight;
 
     // Check if messages area is scrollable (has overflow-y: auto and content may overflow)
     const messagesStyle = win.getComputedStyle(messagesDiv);
-    const messagesScrollable = messagesStyle.overflowY === "auto" || messagesStyle.overflowY === "scroll";
+    const messagesScrollable =
+      messagesStyle.overflowY === "auto" ||
+      messagesStyle.overflowY === "scroll";
 
     if (!inputVisible) {
       Logger.error("Layout", "INPUT BOX NOT VISIBLE!", {
@@ -811,7 +936,9 @@ ${fullText}
     }
 
     // Find sidebar scroll container
-    const scrollContainer = agentSection.closest(".item-pane-content, item-pane") as HTMLElement;
+    const scrollContainer = agentSection.closest(
+      ".item-pane-content, item-pane",
+    ) as HTMLElement;
 
     // Scroll to Agent section
     agentSection.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -825,11 +952,15 @@ ${fullText}
 
     // Try recalculating layout multiple times to ensure scroll completes
     const recalculate = (attempt: number) => {
-      const container = body.querySelector("#agent-chat-container") as HTMLElement;
+      const container = body.querySelector(
+        "#agent-chat-container",
+      ) as HTMLElement;
       if (!container) return;
 
       const rect = container.getBoundingClientRect();
-      Logger.info("Agent", `Layout recalc attempt ${attempt}`, { containerTop: rect.top });
+      Logger.info("Agent", `Layout recalc attempt ${attempt}`, {
+        containerTop: rect.top,
+      });
 
       AgentCore.setupChatLayout(body);
 
@@ -851,7 +982,12 @@ ${fullText}
     messagesDiv: HTMLElement,
     loadingId: string,
     question: string,
-    metadata: { title: string; authors: string; year: string; abstract: string } | null
+    metadata: {
+      title: string;
+      authors: string;
+      year: string;
+      abstract: string;
+    } | null,
   ) {
     try {
       // Generate search keywords
@@ -859,7 +995,10 @@ ${fullText}
 
       if (metadata) {
         // Generate keywords based on current paper
-        searchQuery = ArxivService.generateSearchQuery(metadata.title, metadata.abstract);
+        searchQuery = ArxivService.generateSearchQuery(
+          metadata.title,
+          metadata.abstract,
+        );
         Logger.info("Arxiv", "Generated search query from paper", searchQuery);
       } else {
         // Extract keywords from user question
@@ -872,7 +1011,11 @@ ${fullText}
 
       if (!searchQuery) {
         AgentCore.removeMessage(messagesDiv, loadingId);
-        AgentCore.appendMessage(messagesDiv, "请提供搜索关键词，或先选中一篇论文", false);
+        AgentCore.appendMessage(
+          messagesDiv,
+          "请提供搜索关键词，或先选中一篇论文",
+          false,
+        );
         return;
       }
 
@@ -883,7 +1026,11 @@ ${fullText}
       AgentCore.removeMessage(messagesDiv, loadingId);
 
       if (result.papers.length === 0) {
-        AgentCore.appendMessage(messagesDiv, `未找到与 "${searchQuery}" 相关的论文`, false);
+        AgentCore.appendMessage(
+          messagesDiv,
+          `未找到与 "${searchQuery}" 相关的论文`,
+          false,
+        );
         return;
       }
 
@@ -898,22 +1045,33 @@ ${fullText}
     } catch (error: any) {
       Logger.error("Arxiv", "Search error", error.message);
       AgentCore.removeMessage(messagesDiv, loadingId);
-      AgentCore.appendMessage(messagesDiv, `arXiv 搜索失败: ${error.message}`, false);
+      AgentCore.appendMessage(
+        messagesDiv,
+        `arXiv 搜索失败: ${error.message}`,
+        false,
+      );
     }
   }
 
   /**
    * Handle arXiv download request
    */
-  private static async handleArxivDownload(messagesDiv: HTMLElement, index: number) {
+  private static async handleArxivDownload(
+    messagesDiv: HTMLElement,
+    index: number,
+  ) {
     const paper = AgentCore.lastArxivResults[index];
     if (!paper) {
       AgentCore.appendMessage(messagesDiv, "无效的论文编号", false);
       return;
     }
 
-    const loadingId = AgentCore.appendMessage(messagesDiv,
-      `正在下载: ${paper.title.substring(0, 50)}...`, false, true);
+    const loadingId = AgentCore.appendMessage(
+      messagesDiv,
+      `正在下载: ${paper.title.substring(0, 50)}...`,
+      false,
+      true,
+    );
 
     try {
       const item = await ArxivService.downloadAndImport(paper);
@@ -921,8 +1079,11 @@ ${fullText}
       AgentCore.removeMessage(messagesDiv, loadingId);
 
       if (item) {
-        AgentCore.appendMessage(messagesDiv,
-          `✅ 下载成功!\n**${paper.title}**\n已添加到 Zotero 库中，PDF 已下载。`, false);
+        AgentCore.appendMessage(
+          messagesDiv,
+          `✅ 下载成功!\n**${paper.title}**\n已添加到 Zotero 库中，PDF 已下载。`,
+          false,
+        );
         AgentCore.showNotification("论文已添加到 Zotero", "success");
       } else {
         AgentCore.appendMessage(messagesDiv, "下载失败，请重试", false);
@@ -942,10 +1103,16 @@ ${fullText}
   static testGetSelectedText() {
     const selectedText = PDFService.getSelectedText();
     if (selectedText) {
-      AgentCore.showNotification(`选中文本 (${selectedText.length}字): ${selectedText.substring(0, 50)}...`, "success");
+      AgentCore.showNotification(
+        `选中文本 (${selectedText.length}字): ${selectedText.substring(0, 50)}...`,
+        "success",
+      );
       ztoolkit.log("[Test] Selected text:", selectedText);
     } else {
-      AgentCore.showNotification("未检测到选中文本，请先在 PDF 中选中一段文字", "error");
+      AgentCore.showNotification(
+        "未检测到选中文本，请先在 PDF 中选中一段文字",
+        "error",
+      );
     }
   }
 
@@ -1003,7 +1170,10 @@ ${fullText}
     if (selectedItems.length > 0) {
       const item = selectedItems[0];
       const metadata = PDFService.getItemMetadata(item);
-      query = ArxivService.generateSearchQuery(metadata.title, metadata.abstract);
+      query = ArxivService.generateSearchQuery(
+        metadata.title,
+        metadata.abstract,
+      );
       AgentCore.showNotification(`搜索关键词: ${query}`, "default");
     } else {
       AgentCore.showNotification(`使用默认关键词: ${query}`, "default");
@@ -1015,9 +1185,13 @@ ${fullText}
         const firstPaper = result.papers[0];
         AgentCore.showNotification(
           `找到 ${result.papers.length} 篇论文\n第一篇: ${firstPaper.title.substring(0, 50)}...`,
-          "success"
+          "success",
         );
-        Logger.info("Test", "arXiv search results", result.papers.map(p => p.title));
+        Logger.info(
+          "Test",
+          "arXiv search results",
+          result.papers.map((p) => p.title),
+        );
       } else {
         AgentCore.showNotification("未找到相关论文", "error");
       }
@@ -1033,20 +1207,30 @@ ${fullText}
   static testLayout() {
     // Find Agent panel
     const doc = ztoolkit.getGlobal("document");
-    const agentBody = doc.querySelector("#agent-chat-container")?.closest(".item-pane-section-body") as HTMLElement;
+    const agentBody = doc
+      .querySelector("#agent-chat-container")
+      ?.closest(".item-pane-section-body") as HTMLElement;
 
     if (!agentBody) {
       AgentCore.showNotification("未找到 Agent 面板，请先展开面板", "error");
       return;
     }
 
-    const container = agentBody.querySelector("#agent-chat-container") as HTMLElement;
+    const container = agentBody.querySelector(
+      "#agent-chat-container",
+    ) as HTMLElement;
     const input = agentBody.querySelector("#agent-chat-input") as HTMLElement;
-    const messagesDiv = agentBody.querySelector("#agent-chat-messages") as HTMLElement;
+    const messagesDiv = agentBody.querySelector(
+      "#agent-chat-messages",
+    ) as HTMLElement;
 
     if (!container || !input || !messagesDiv) {
       AgentCore.showNotification("布局元素缺失!", "error");
-      Logger.error("LayoutTest", "Missing elements", { container: !!container, input: !!input, messagesDiv: !!messagesDiv });
+      Logger.error("LayoutTest", "Missing elements", {
+        container: !!container,
+        input: !!input,
+        messagesDiv: !!messagesDiv,
+      });
       return;
     }
 
@@ -1058,34 +1242,49 @@ ${fullText}
     const viewportHeight = win.innerHeight;
 
     if (inputRect.bottom > viewportHeight) {
-      issues.push(`Input box exceeds viewport (bottom: ${inputRect.bottom.toFixed(0)}, viewport: ${viewportHeight})`);
+      issues.push(
+        `Input box exceeds viewport (bottom: ${inputRect.bottom.toFixed(0)}, viewport: ${viewportHeight})`,
+      );
     }
 
     if (inputRect.top < 0) {
-      issues.push(`Input box above viewport (top: ${inputRect.top.toFixed(0)})`);
+      issues.push(
+        `Input box above viewport (top: ${inputRect.top.toFixed(0)})`,
+      );
     }
 
     // 2. Check if messages area is scrollable
     const messagesStyle = win.getComputedStyle(messagesDiv);
-    if (messagesStyle.overflowY !== "auto" && messagesStyle.overflowY !== "scroll") {
-      issues.push(`Messages area not scrollable (overflow-y: ${messagesStyle.overflowY})`);
+    if (
+      messagesStyle.overflowY !== "auto" &&
+      messagesStyle.overflowY !== "scroll"
+    ) {
+      issues.push(
+        `Messages area not scrollable (overflow-y: ${messagesStyle.overflowY})`,
+      );
     }
 
     // 3. Check flex layout
     const containerStyle = win.getComputedStyle(container);
     if (containerStyle.display !== "flex") {
-      issues.push(`Container not flex layout (display: ${containerStyle.display})`);
+      issues.push(
+        `Container not flex layout (display: ${containerStyle.display})`,
+      );
     }
 
     // 4. Check section body height
     const sectionBodyRect = agentBody.getBoundingClientRect();
     if (sectionBodyRect.height < 200) {
-      issues.push(`Panel height too small (height: ${sectionBodyRect.height.toFixed(0)}px)`);
+      issues.push(
+        `Panel height too small (height: ${sectionBodyRect.height.toFixed(0)}px)`,
+      );
     }
 
     // 5. Check min-height: 0 (key for flex scrolling)
     if (messagesStyle.minHeight !== "0px") {
-      issues.push(`Messages area min-height not 0 (actual: ${messagesStyle.minHeight})`);
+      issues.push(
+        `Messages area min-height not 0 (actual: ${messagesStyle.minHeight})`,
+      );
     }
 
     // Output results
@@ -1097,7 +1296,10 @@ ${fullText}
         sectionHeight: sectionBodyRect.height,
       });
     } else {
-      AgentCore.showNotification(`❌ 布局问题: ${issues.length} 个\n${issues[0]}`, "error");
+      AgentCore.showNotification(
+        `❌ 布局问题: ${issues.length} 个\n${issues[0]}`,
+        "error",
+      );
       Logger.error("LayoutTest", "Layout issues found", issues);
     }
 

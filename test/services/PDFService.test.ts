@@ -9,14 +9,20 @@ describe("PDFService", function () {
       const text = "Short text";
       const maxLength = 100;
       // 模拟 truncateText 逻辑
-      const result = text.length <= maxLength ? text : text.substring(0, maxLength) + "\n\n[... content truncated ...]";
+      const result =
+        text.length <= maxLength
+          ? text
+          : text.substring(0, maxLength) + "\n\n[... content truncated ...]";
       assert.equal(result, text);
     });
 
     it("should truncate text longer than maxLength", function () {
       const text = "A".repeat(200);
       const maxLength = 100;
-      const result = text.length <= maxLength ? text : text.substring(0, maxLength) + "\n\n[... content truncated ...]";
+      const result =
+        text.length <= maxLength
+          ? text
+          : text.substring(0, maxLength) + "\n\n[... content truncated ...]";
       assert.include(result, "[... content truncated ...]");
       assert.isAtMost(result.length, maxLength + 30); // 30 for truncation message
     });

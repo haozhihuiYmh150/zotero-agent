@@ -2,7 +2,14 @@
  * QA Tools - Handle user questions
  */
 
-import { BaseTool, ToolContext, ToolParams, ToolResult, StatusCallback, StreamCallback } from "./BaseTool";
+import {
+  BaseTool,
+  ToolContext,
+  ToolParams,
+  ToolResult,
+  StatusCallback,
+  StreamCallback,
+} from "./BaseTool";
 import { PDFService } from "../services/PDFService";
 import { LLMService } from "../services/LLMService";
 
@@ -11,7 +18,8 @@ import { LLMService } from "../services/LLMService";
  */
 export class PaperQATool extends BaseTool {
   name = "paper_qa";
-  description = "回答关于当前论文的问题。当用户询问论文内容、方法、结论等时使用。";
+  description =
+    "回答关于当前论文的问题。当用户询问论文内容、方法、结论等时使用。";
   parameters = [
     {
       name: "question",
@@ -30,12 +38,16 @@ export class PaperQATool extends BaseTool {
   async execute(
     params: ToolParams,
     context: ToolContext,
-    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback }
+    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
     const { question } = params;
     const { currentItem, metadata, selectedText } = context;
 
-    this.log("info", "Paper QA", { question, hasItem: !!currentItem, hasSelection: !!selectedText });
+    this.log("info", "Paper QA", {
+      question,
+      hasItem: !!currentItem,
+      hasSelection: !!selectedText,
+    });
 
     try {
       let paperContext = "";
@@ -74,7 +86,8 @@ export class PaperQATool extends BaseTool {
 
       callbacks.onStatus?.("🤔 思考中...");
 
-      const systemPrompt = "你是 Zotero Agent，学术研究助手。基于提供的论文内容用中文简洁准确地回答问题。";
+      const systemPrompt =
+        "你是 Zotero Agent，学术研究助手。基于提供的论文内容用中文简洁准确地回答问题。";
 
       let fullResponse = "";
 
@@ -84,7 +97,7 @@ export class PaperQATool extends BaseTool {
             { role: "system", content: systemPrompt },
             { role: "user", content: paperContext + "问题：" + question },
           ],
-          callbacks.onStream
+          callbacks.onStream,
         );
       } else {
         fullResponse = await this.llmService.chat([
@@ -134,7 +147,7 @@ export class GeneralQATool extends BaseTool {
   async execute(
     params: ToolParams,
     context: ToolContext,
-    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback }
+    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
     const { question } = params;
 
@@ -142,7 +155,8 @@ export class GeneralQATool extends BaseTool {
     callbacks.onStatus?.("🤔 思考中...");
 
     try {
-      const systemPrompt = "你是 Zotero Agent，学术研究助手。用中文简洁回答用户的问题。";
+      const systemPrompt =
+        "你是 Zotero Agent，学术研究助手。用中文简洁回答用户的问题。";
 
       let fullResponse = "";
 
@@ -152,7 +166,7 @@ export class GeneralQATool extends BaseTool {
             { role: "system", content: systemPrompt },
             { role: "user", content: question },
           ],
-          callbacks.onStream
+          callbacks.onStream,
         );
       } else {
         fullResponse = await this.llmService.chat([

@@ -5,11 +5,11 @@
 import { Logger } from "../utils/logger";
 
 export interface ArxivPaper {
-  id: string;           // arXiv ID, e.g., "2301.00001"
+  id: string; // arXiv ID, e.g., "2301.00001"
   title: string;
   authors: string[];
   abstract: string;
-  published: string;    // ISO date
+  published: string; // ISO date
   updated: string;
   categories: string[];
   pdfUrl: string;
@@ -32,8 +32,15 @@ export class ArxivService {
   /**
    * Search arXiv papers
    */
-  static async search(query: string, maxResults: number = 5): Promise<ArxivSearchResult> {
-    Logger.info("Arxiv", "Searching", { query, maxResults, timeout: this.TIMEOUT_MS });
+  static async search(
+    query: string,
+    maxResults: number = 5,
+  ): Promise<ArxivSearchResult> {
+    Logger.info("Arxiv", "Searching", {
+      query,
+      maxResults,
+      timeout: this.TIMEOUT_MS,
+    });
 
     try {
       // Build search URL
@@ -62,8 +69,13 @@ export class ArxivService {
     } catch (error: any) {
       Logger.error("Arxiv", "Search failed", error.message);
       // Provide more user-friendly error message
-      if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
-        throw new Error("arXiv request timed out. Network may be slow, please retry later or use a proxy");
+      if (
+        error.message?.includes("timeout") ||
+        error.message?.includes("timed out")
+      ) {
+        throw new Error(
+          "arXiv request timed out. Network may be slow, please retry later or use a proxy",
+        );
       }
       throw error;
     }
@@ -75,19 +87,66 @@ export class ArxivService {
   static generateSearchQuery(title: string, abstract?: string): string {
     // Extract keywords from title (remove common words)
     const stopWords = new Set([
-      "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
-      "of", "with", "by", "from", "as", "is", "was", "are", "were", "been",
-      "be", "have", "has", "had", "do", "does", "did", "will", "would",
-      "could", "should", "may", "might", "must", "shall", "can", "need",
-      "using", "based", "through", "via", "into", "upon", "about", "between",
-      "under", "over", "after", "before", "during", "without", "within",
+      "a",
+      "an",
+      "the",
+      "and",
+      "or",
+      "but",
+      "in",
+      "on",
+      "at",
+      "to",
+      "for",
+      "of",
+      "with",
+      "by",
+      "from",
+      "as",
+      "is",
+      "was",
+      "are",
+      "were",
+      "been",
+      "be",
+      "have",
+      "has",
+      "had",
+      "do",
+      "does",
+      "did",
+      "will",
+      "would",
+      "could",
+      "should",
+      "may",
+      "might",
+      "must",
+      "shall",
+      "can",
+      "need",
+      "using",
+      "based",
+      "through",
+      "via",
+      "into",
+      "upon",
+      "about",
+      "between",
+      "under",
+      "over",
+      "after",
+      "before",
+      "during",
+      "without",
+      "within",
     ]);
 
     const words = title
       .toLowerCase()
       .replace(/[^\w\s]/g, " ")
       .split(/\s+/)
-      .filter(word => word.length > 2 && !stopWords.has(word));
+      .filter((word) => word.length > 2 && !stopWords.has(word));
 
     // Take first 5 keywords
     const keywords = words.slice(0, 5);
@@ -107,22 +166,32 @@ export class ArxivService {
 
       entries.forEach((entry: Element) => {
         const id = this.getTextContent(entry, "id");
-        const arxivId = id.replace("http://arxiv.org/abs/", "").replace(/v\d+$/, "");
+        const arxivId = id
+          .replace("http://arxiv.org/abs/", "")
+          .replace(/v\d+$/, "");
 
         const authorElements = entry.querySelectorAll("author name");
         const categoryElements = entry.querySelectorAll("category");
 
         const authors: string[] = [];
-        authorElements.forEach((el: Element) => authors.push(el.textContent?.trim() || ""));
+        authorElements.forEach((el: Element) =>
+          authors.push(el.textContent?.trim() || ""),
+        );
 
         const categories: string[] = [];
-        categoryElements.forEach((el: Element) => categories.push(el.getAttribute("term") || ""));
+        categoryElements.forEach((el: Element) =>
+          categories.push(el.getAttribute("term") || ""),
+        );
 
         const paper: ArxivPaper = {
           id: arxivId,
-          title: this.getTextContent(entry, "title").replace(/\s+/g, " ").trim(),
+          title: this.getTextContent(entry, "title")
+            .replace(/\s+/g, " ")
+            .trim(),
           authors,
-          abstract: this.getTextContent(entry, "summary").replace(/\s+/g, " ").trim(),
+          abstract: this.getTextContent(entry, "summary")
+            .replace(/\s+/g, " ")
+            .trim(),
           published: this.getTextContent(entry, "published"),
           updated: this.getTextContent(entry, "updated"),
           categories,
@@ -147,8 +216,14 @@ export class ArxivService {
   /**
    * Download paper and import to Zotero
    */
-  static async downloadAndImport(paper: ArxivPaper, collectionId?: number): Promise<Zotero.Item | null> {
-    Logger.info("Arxiv", "Downloading paper", { id: paper.id, title: paper.title });
+  static async downloadAndImport(
+    paper: ArxivPaper,
+    collectionId?: number,
+  ): Promise<Zotero.Item | null> {
+    Logger.info("Arxiv", "Downloading paper", {
+      id: paper.id,
+      title: paper.title,
+    });
 
     try {
       // Create Zotero item - use preprint type (new in Zotero 7)
@@ -208,12 +283,14 @@ export class ArxivService {
    * Format paper info for display
    */
   static formatPaperForDisplay(paper: ArxivPaper, index: number): string {
-    const authors = paper.authors.slice(0, 3).join(", ") +
+    const authors =
+      paper.authors.slice(0, 3).join(", ") +
       (paper.authors.length > 3 ? " et al." : "");
     const year = paper.published.substring(0, 4);
-    const abstractShort = paper.abstract.length > 150
-      ? paper.abstract.substring(0, 150) + "..."
-      : paper.abstract;
+    const abstractShort =
+      paper.abstract.length > 150
+        ? paper.abstract.substring(0, 150) + "..."
+        : paper.abstract;
 
     return `**[${index + 1}] ${paper.title}**
 作者: ${authors} (${year})

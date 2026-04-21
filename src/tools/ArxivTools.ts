@@ -2,7 +2,14 @@
  * ArXiv Search Tool
  */
 
-import { BaseTool, ToolContext, ToolParams, ToolResult, StatusCallback, StreamCallback } from "./BaseTool";
+import {
+  BaseTool,
+  ToolContext,
+  ToolParams,
+  ToolResult,
+  StatusCallback,
+  StreamCallback,
+} from "./BaseTool";
 import { ArxivService, ArxivPaper } from "../services/ArxivService";
 
 export class ArxivSearchTool extends BaseTool {
@@ -31,7 +38,7 @@ export class ArxivSearchTool extends BaseTool {
   async execute(
     params: ToolParams,
     context: ToolContext,
-    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback }
+    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
     const { keywords, maxResults = 5 } = params;
 
@@ -98,7 +105,7 @@ export class ArxivDownloadTool extends BaseTool {
   async execute(
     params: ToolParams,
     context: ToolContext,
-    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback }
+    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
     const index = parseInt(params.index) - 1;
     const papers = ArxivSearchTool.getLastResults();

@@ -11,12 +11,12 @@
     <html:label
       for="zotero-prefpane-__addonRef__-provider"
       data-l10n-id="pref-provider"
-      style="min-width: 120px;"
+      style="min-width: 120px"
     ></html:label>
     <menulist
       id="zotero-prefpane-__addonRef__-provider"
       preference="llm.provider"
-      style="flex: 1;"
+      style="flex: 1"
     >
       <menupopup>
         <menuitem label="豆包 (Doubao)" value="doubao" />
@@ -27,70 +27,71 @@
   </hbox>
 
   <!-- API Key -->
-  <hbox align="center" style="margin-top: 10px;">
+  <hbox align="center" style="margin-top: 10px">
     <html:label
       for="zotero-prefpane-__addonRef__-apikey"
       data-l10n-id="pref-apikey"
-      style="min-width: 120px;"
+      style="min-width: 120px"
     ></html:label>
     <html:input
       type="password"
       id="zotero-prefpane-__addonRef__-apikey"
       preference="llm.apiKey"
-      style="flex: 1;"
+      style="flex: 1"
     />
   </hbox>
 
   <!-- API Base URL -->
-  <hbox align="center" style="margin-top: 10px;">
+  <hbox align="center" style="margin-top: 10px">
     <html:label
       for="zotero-prefpane-__addonRef__-apibase"
       data-l10n-id="pref-apibase"
-      style="min-width: 120px;"
+      style="min-width: 120px"
     ></html:label>
     <html:input
       type="text"
       id="zotero-prefpane-__addonRef__-apibase"
       preference="llm.apiBase"
       placeholder="https://ark.cn-beijing.volces.com/api/v3"
-      style="flex: 1;"
+      style="flex: 1"
     />
   </hbox>
 
   <!-- Model -->
-  <hbox align="center" style="margin-top: 10px;">
+  <hbox align="center" style="margin-top: 10px">
     <html:label
       for="zotero-prefpane-__addonRef__-model"
       data-l10n-id="pref-model"
-      style="min-width: 120px;"
+      style="min-width: 120px"
     ></html:label>
     <html:input
       type="text"
       id="zotero-prefpane-__addonRef__-model"
       preference="llm.model"
       placeholder="doubao-seed-2-0-pro-260215"
-      style="flex: 1;"
+      style="flex: 1"
     />
   </hbox>
 
   <!-- Test Connection Button -->
-  <hbox style="margin-top: 15px;">
+  <hbox style="margin-top: 15px">
     <button
       id="zotero-prefpane-__addonRef__-test"
       data-l10n-id="pref-test-connection"
-      oncommand="Zotero.__addonInstance__.hooks.onPrefsEvent('test', { window })"
+      oncommand="
+        Zotero.__addonInstance__.hooks.onPrefsEvent('test', { window })
+      "
     />
     <html:span
       id="zotero-prefpane-__addonRef__-test-result"
-      style="margin-left: 10px; line-height: 28px;"
+      style="margin-left: 10px; line-height: 28px"
     ></html:span>
   </hbox>
-
 </groupbox>
-<vbox style="margin-top: 15px;">
+<vbox style="margin-top: 15px">
   <html:label
     data-l10n-id="pref-help"
     data-l10n-args='{"time": "__buildTime__","name": "__addonName__","version":"__buildVersion__"}'
-    style="color: #666; font-size: 12px;"
+    style="color: #666; font-size: 12px"
   ></html:label>
 </vbox>

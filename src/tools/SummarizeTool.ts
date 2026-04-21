@@ -2,7 +2,14 @@
  * Paper Summarize Tool
  */
 
-import { BaseTool, ToolContext, ToolParams, ToolResult, StatusCallback, StreamCallback } from "./BaseTool";
+import {
+  BaseTool,
+  ToolContext,
+  ToolParams,
+  ToolResult,
+  StatusCallback,
+  StreamCallback,
+} from "./BaseTool";
 import { PDFService } from "../services/PDFService";
 import { LLMService } from "../services/LLMService";
 
@@ -21,7 +28,7 @@ export class SummarizeTool extends BaseTool {
   async execute(
     params: ToolParams,
     context: ToolContext,
-    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback }
+    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
     const { currentItem, metadata, selectedText } = context;
 
@@ -47,9 +54,11 @@ export class SummarizeTool extends BaseTool {
   private async summarizeSelectedText(
     selectedText: string,
     metadata: ToolContext["metadata"],
-    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback }
+    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
-    this.log("info", "Summarizing selected text", { length: selectedText.length });
+    this.log("info", "Summarizing selected text", {
+      length: selectedText.length,
+    });
     callbacks.onStatus?.("📋 正在总结选中内容...");
 
     try {
@@ -68,7 +77,7 @@ export class SummarizeTool extends BaseTool {
             { role: "system", content: systemPrompt },
             { role: "user", content: context },
           ],
-          callbacks.onStream
+          callbacks.onStream,
         );
       } else {
         fullResponse = await this.llmService.chat([
@@ -77,7 +86,9 @@ export class SummarizeTool extends BaseTool {
         ]);
       }
 
-      this.log("info", "Selected text summary complete", { length: fullResponse.length });
+      this.log("info", "Selected text summary complete", {
+        length: fullResponse.length,
+      });
 
       return {
         success: true,
@@ -99,7 +110,7 @@ export class SummarizeTool extends BaseTool {
   private async summarizeFullPaper(
     currentItem: Zotero.Item,
     metadata: NonNullable<ToolContext["metadata"]>,
-    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback }
+    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
     this.log("info", "Summarizing full paper", { title: metadata.title });
     callbacks.onStatus?.("📖 正在提取论文内容...");
@@ -136,7 +147,7 @@ export class SummarizeTool extends BaseTool {
             { role: "system", content: systemPrompt },
             { role: "user", content: paperContext },
           ],
-          callbacks.onStream
+          callbacks.onStream,
         );
       } else {
         fullResponse = await this.llmService.chat([
@@ -145,7 +156,9 @@ export class SummarizeTool extends BaseTool {
         ]);
       }
 
-      this.log("info", "Full paper summary complete", { length: fullResponse.length });
+      this.log("info", "Full paper summary complete", {
+        length: fullResponse.length,
+      });
 
       return {
         success: true,

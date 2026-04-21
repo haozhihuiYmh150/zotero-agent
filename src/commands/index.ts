@@ -63,12 +63,9 @@ class CommandRegistry {
 
     const trimmed = input.trim();
     const spaceIndex = trimmed.indexOf(" ");
-    const commandName = spaceIndex > 0
-      ? trimmed.substring(1, spaceIndex)
-      : trimmed.substring(1);
-    const args = spaceIndex > 0
-      ? trimmed.substring(spaceIndex + 1).trim()
-      : "";
+    const commandName =
+      spaceIndex > 0 ? trimmed.substring(1, spaceIndex) : trimmed.substring(1);
+    const args = spaceIndex > 0 ? trimmed.substring(spaceIndex + 1).trim() : "";
 
     const command = this.get(commandName);
     if (!command) {

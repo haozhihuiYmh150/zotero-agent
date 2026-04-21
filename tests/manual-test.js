@@ -39,7 +39,9 @@
   try {
     const query = "transformer attention";
     const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&max_results=2`;
-    const response = await Zotero.HTTP.request("GET", url, { responseType: "text" });
+    const response = await Zotero.HTTP.request("GET", url, {
+      responseType: "text",
+    });
     const hasResults = response.response.includes("<entry>");
     log("arXiv API", response.status === 200, `status=${response.status}`);
     log("arXiv 搜索结果", hasResults, hasResults ? "找到论文" : "无结果");
@@ -50,7 +52,11 @@
   // ========== 测试 4: PDF 阅读器选中文本 ==========
   try {
     const readers = Zotero.Reader._readers;
-    log("PDF 阅读器", readers && readers.length > 0, `${readers?.length || 0} 个阅读器打开`);
+    log(
+      "PDF 阅读器",
+      readers && readers.length > 0,
+      `${readers?.length || 0} 个阅读器打开`,
+    );
 
     if (readers && readers.length > 0) {
       const reader = readers[readers.length - 1];
@@ -58,7 +64,11 @@
       if (win) {
         const selection = win.getSelection?.();
         const text = selection?.toString()?.trim();
-        log("选中文本", text?.length > 0, text ? `${text.length} 字符` : "无选中");
+        log(
+          "选中文本",
+          text?.length > 0,
+          text ? `${text.length} 字符` : "无选中",
+        );
       }
     }
   } catch (e) {
@@ -76,12 +86,12 @@
   }
 
   // ========== 汇总 ==========
-  const passed = results.filter(r => r.passed).length;
+  const passed = results.filter((r) => r.passed).length;
   const total = results.length;
 
   Zotero.debug(`\n========== 测试结果 ==========`);
   Zotero.debug(`通过: ${passed}/${total}`);
-  results.forEach(r => {
+  results.forEach((r) => {
     Zotero.debug(`${r.passed ? "✅" : "❌"} ${r.test}: ${r.detail}`);
   });
 

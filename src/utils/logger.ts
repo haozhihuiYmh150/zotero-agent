@@ -20,15 +20,25 @@ export class Logger {
   /**
    * Write log entry
    */
-  static async log(level: "INFO" | "WARN" | "ERROR" | "DEBUG", module: string, message: string, data?: any) {
+  static async log(
+    level: "INFO" | "WARN" | "ERROR" | "DEBUG",
+    module: string,
+    message: string,
+    data?: any,
+  ) {
     const timestamp = new Date().toISOString();
     let logLine = `[${timestamp}] [${level}] [${module}] ${message}`;
 
     if (data !== undefined) {
       try {
-        const dataStr = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+        const dataStr =
+          typeof data === "string" ? data : JSON.stringify(data, null, 2);
         // Truncate overly long data
-        logLine += "\n  " + (dataStr.length > 1000 ? dataStr.substring(0, 1000) + "..." : dataStr);
+        logLine +=
+          "\n  " +
+          (dataStr.length > 1000
+            ? dataStr.substring(0, 1000) + "..."
+            : dataStr);
       } catch {
         logLine += "\n  [Cannot serialize data]";
       }
@@ -56,7 +66,9 @@ export class Logger {
       // Read existing content
       let existing = "";
       try {
-        existing = (await Zotero.File.getContentsAsync(getLogFilePath())) as string || "";
+        existing =
+          ((await Zotero.File.getContentsAsync(getLogFilePath())) as string) ||
+          "";
       } catch {
         // File does not exist
       }
@@ -100,7 +112,10 @@ export class Logger {
    */
   static async clear() {
     try {
-      await Zotero.File.putContentsAsync(getLogFilePath(), `=== Zotero Agent Log Started at ${new Date().toISOString()} ===\n`);
+      await Zotero.File.putContentsAsync(
+        getLogFilePath(),
+        `=== Zotero Agent Log Started at ${new Date().toISOString()} ===\n`,
+      );
     } catch {
       // Ignore
     }

@@ -21,7 +21,12 @@ export class SidePanel {
   private static defaultWidth = 320;
 
   // Global chat history
-  private static chatHistory: Array<{ role: string; content: string; isUser: boolean; id: string }> = [];
+  private static chatHistory: Array<{
+    role: string;
+    content: string;
+    isUser: boolean;
+    id: string;
+  }> = [];
   // User input history (for up/down arrow navigation)
   private static inputHistory: string[] = [];
   private static inputHistoryIndex = -1;
@@ -95,7 +100,10 @@ export class SidePanel {
     const defaultLeft = win.innerWidth - 60;
     const defaultTop = win.innerHeight - 128;
 
-    this.toggleBtn = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    this.toggleBtn = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     this.toggleBtn.id = SidePanel.toggleBtnId;
     this.toggleBtn.style.cssText = `
       position: fixed;
@@ -120,8 +128,10 @@ export class SidePanel {
     // Drag functionality
     let isDragging = false;
     let hasMoved = false;
-    let startX = 0, startY = 0;
-    let startLeft = 0, startTop = 0;
+    let startX = 0,
+      startY = 0;
+    let startLeft = 0,
+      startTop = 0;
 
     this.toggleBtn.addEventListener("mousedown", (e: MouseEvent) => {
       isDragging = true;
@@ -195,7 +205,10 @@ export class SidePanel {
       top: parseInt(this.toggleBtn.style.top) || 0,
     };
     try {
-      Zotero.Prefs.set("extensions.zoteroagent.toggleBtnPos", JSON.stringify(pos));
+      Zotero.Prefs.set(
+        "extensions.zoteroagent.toggleBtnPos",
+        JSON.stringify(pos),
+      );
     } catch (e) {
       // ignore
     }
@@ -206,7 +219,9 @@ export class SidePanel {
    */
   private getSavedPosition(): { left?: number; top?: number } {
     try {
-      const saved = Zotero.Prefs.get("extensions.zoteroagent.toggleBtnPos") as string;
+      const saved = Zotero.Prefs.get(
+        "extensions.zoteroagent.toggleBtnPos",
+      ) as string;
       if (saved) {
         return JSON.parse(saved);
       }
@@ -225,7 +240,10 @@ export class SidePanel {
     // Read saved width
     const savedWidth = this.getSavedWidth();
 
-    this.panel = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    this.panel = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     this.panel.id = SidePanel.panelId;
     this.panel.style.cssText = `
       position: fixed;
@@ -243,7 +261,10 @@ export class SidePanel {
     `;
 
     // Left drag edge (adjust width)
-    const resizeHandle = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const resizeHandle = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     resizeHandle.style.cssText = `
       position: absolute;
       left: 0;
@@ -266,7 +287,10 @@ export class SidePanel {
     this.panel.appendChild(resizeHandle);
 
     // Header - draggable
-    const header = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const header = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     header.style.cssText = `
       display: flex;
       align-items: center;
@@ -279,8 +303,12 @@ export class SidePanel {
     `;
 
     // Left side logo + title (draggable area)
-    const headerLeft = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
-    headerLeft.style.cssText = "display: flex; align-items: center; gap: 10px; flex: 1;";
+    const headerLeft = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
+    headerLeft.style.cssText =
+      "display: flex; align-items: center; gap: 10px; flex: 1;";
     headerLeft.innerHTML = `
       <img src="${logoIcon}" style="width: 24px; height: 24px; border-radius: 4px; pointer-events: none;" />
       <span style="font-weight: 600; font-size: 14px; color: var(--fill-primary, #333); pointer-events: none;">Zotero Agent</span>
@@ -288,11 +316,17 @@ export class SidePanel {
     header.appendChild(headerLeft);
 
     // Right side button area
-    const headerRight = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const headerRight = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     headerRight.style.cssText = "display: flex; align-items: center; gap: 4px;";
 
     // New chat button
-    const newChatBtn = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const newChatBtn = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     newChatBtn.id = "agent-panel-new-chat";
     newChatBtn.title = "新对话";
     newChatBtn.style.cssText = `
@@ -305,8 +339,12 @@ export class SidePanel {
       line-height: 1;
     `;
     newChatBtn.textContent = "＋";
-    newChatBtn.addEventListener("mouseenter", () => { newChatBtn.style.background = "var(--fill-quinary, #eee)"; });
-    newChatBtn.addEventListener("mouseleave", () => { newChatBtn.style.background = "none"; });
+    newChatBtn.addEventListener("mouseenter", () => {
+      newChatBtn.style.background = "var(--fill-quinary, #eee)";
+    });
+    newChatBtn.addEventListener("mouseleave", () => {
+      newChatBtn.style.background = "none";
+    });
     newChatBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.startNewChat();
@@ -314,7 +352,10 @@ export class SidePanel {
     headerRight.appendChild(newChatBtn);
 
     // Close button - use div to simulate button, avoid Zotero security mechanism removing button
-    const closeBtn = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const closeBtn = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     closeBtn.id = "agent-panel-close";
     closeBtn.title = "收起";
     closeBtn.style.cssText = `
@@ -327,8 +368,12 @@ export class SidePanel {
       line-height: 1;
     `;
     closeBtn.textContent = "×";
-    closeBtn.addEventListener("mouseenter", () => { closeBtn.style.background = "var(--fill-quinary, #eee)"; });
-    closeBtn.addEventListener("mouseleave", () => { closeBtn.style.background = "none"; });
+    closeBtn.addEventListener("mouseenter", () => {
+      closeBtn.style.background = "var(--fill-quinary, #eee)";
+    });
+    closeBtn.addEventListener("mouseleave", () => {
+      closeBtn.style.background = "none";
+    });
     closeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.collapse();
@@ -342,7 +387,10 @@ export class SidePanel {
     this.panel.appendChild(header);
 
     // Messages area
-    this.messagesContainer = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    this.messagesContainer = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     this.messagesContainer.id = "agent-side-panel-messages";
     this.messagesContainer.setAttribute("tabindex", "0"); // Allow focus
     this.messagesContainer.style.cssText = `
@@ -363,7 +411,11 @@ export class SidePanel {
           e.preventDefault();
           const text = selection.toString();
           new ztoolkit.Clipboard().addText(text, "text/unicode").copy();
-          Logger.debug("SidePanel", "Copied to clipboard", `${text.length} chars`);
+          Logger.debug(
+            "SidePanel",
+            "Copied to clipboard",
+            `${text.length} chars`,
+          );
         }
       }
     });
@@ -372,7 +424,10 @@ export class SidePanel {
     this.panel.appendChild(this.messagesContainer);
 
     // Input area (contains command menu)
-    const inputWrapper = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const inputWrapper = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     inputWrapper.id = "agent-input-wrapper";
     inputWrapper.style.cssText = `
       padding: 12px 16px;
@@ -382,7 +437,10 @@ export class SidePanel {
     `;
 
     // Command suggestion menu
-    const commandMenu = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const commandMenu = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     commandMenu.id = "agent-command-menu";
     commandMenu.style.cssText = `
       display: none;
@@ -400,7 +458,10 @@ export class SidePanel {
     `;
     inputWrapper.appendChild(commandMenu);
 
-    const input = doc.createElementNS("http://www.w3.org/1999/xhtml", "input") as HTMLInputElement;
+    const input = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "input",
+    ) as HTMLInputElement;
     input.id = "agent-side-panel-input";
     input.type = "text";
     input.placeholder = "输入问题，按回车发送...";
@@ -416,13 +477,21 @@ export class SidePanel {
       outline: none;
     `;
 
-    input.addEventListener("keydown", (e) => this.handleInputKeydown(e as KeyboardEvent, input));
-    input.addEventListener("input", () => this.handleInputChange(input, commandMenu));
-    input.addEventListener("focus", () => { input.style.borderColor = "#3B82F6"; });
+    input.addEventListener("keydown", (e) =>
+      this.handleInputKeydown(e as KeyboardEvent, input),
+    );
+    input.addEventListener("input", () =>
+      this.handleInputChange(input, commandMenu),
+    );
+    input.addEventListener("focus", () => {
+      input.style.borderColor = "#3B82F6";
+    });
     input.addEventListener("blur", () => {
       input.style.borderColor = "var(--fill-quinary, #ddd)";
       // Delay hiding menu to allow click event to trigger
-      setTimeout(() => { commandMenu.style.display = "none"; }, 150);
+      setTimeout(() => {
+        commandMenu.style.display = "none";
+      }, 150);
     });
 
     inputWrapper.appendChild(input);
@@ -487,7 +556,9 @@ export class SidePanel {
    */
   private getSavedWidth(): number {
     try {
-      const saved = Zotero.Prefs.get("extensions.zoteroagent.panelWidth") as number;
+      const saved = Zotero.Prefs.get(
+        "extensions.zoteroagent.panelWidth",
+      ) as number;
       if (saved && saved >= 250 && saved <= 600) {
         return saved;
       }
@@ -499,12 +570,19 @@ export class SidePanel {
 
   private setupHeaderDrag(doc: Document, header: HTMLElement) {
     let isDragging = false;
-    let startX = 0, startY = 0;
-    let startRight = 0, startTop = 0;
+    let startX = 0,
+      startY = 0;
+    let startRight = 0,
+      startTop = 0;
 
     header.addEventListener("mousedown", (e: MouseEvent) => {
       // Ignore button clicks
-      if ((e.target as HTMLElement).closest("#agent-panel-close, #agent-panel-new-chat")) return;
+      if (
+        (e.target as HTMLElement).closest(
+          "#agent-panel-close, #agent-panel-new-chat",
+        )
+      )
+        return;
 
       isDragging = true;
       startX = e.clientX;
@@ -567,7 +645,9 @@ export class SidePanel {
    */
   private getSavedPanelPosition(): { right: number; top: number } {
     try {
-      const saved = Zotero.Prefs.get("extensions.zoteroagent.panelPos") as string;
+      const saved = Zotero.Prefs.get(
+        "extensions.zoteroagent.panelPos",
+      ) as string;
       if (saved) {
         return JSON.parse(saved);
       }
@@ -607,7 +687,9 @@ export class SidePanel {
 
     // Focus input box
     setTimeout(() => {
-      const input = this.panel?.querySelector("#agent-side-panel-input") as HTMLInputElement;
+      const input = this.panel?.querySelector(
+        "#agent-side-panel-input",
+      ) as HTMLInputElement;
       input?.focus();
     }, 100);
 
@@ -662,7 +744,9 @@ export class SidePanel {
    */
   private async handleInputKeydown(e: KeyboardEvent, input: HTMLInputElement) {
     // Check if command menu is visible
-    const commandMenu = this.panel?.querySelector("#agent-command-menu") as HTMLElement;
+    const commandMenu = this.panel?.querySelector(
+      "#agent-command-menu",
+    ) as HTMLElement;
     const isMenuVisible = commandMenu && commandMenu.style.display === "block";
     const menuItems = commandMenu?.children || [];
 
@@ -695,14 +779,20 @@ export class SidePanel {
       if (e.key === "Enter" && SidePanel.commandMenuIndex >= 0) {
         e.preventDefault();
         // Fill in selected command
-        const selectedItem = menuItems[SidePanel.commandMenuIndex] as HTMLElement;
+        const selectedItem = menuItems[
+          SidePanel.commandMenuIndex
+        ] as HTMLElement;
         const cmdName = selectedItem?.querySelector("div")?.textContent?.trim();
         if (cmdName) {
           input.value = `${cmdName} `;
           commandMenu.style.display = "none";
           SidePanel.commandMenuIndex = -1;
           // Move cursor to end
-          setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
+          setTimeout(
+            () =>
+              input.setSelectionRange(input.value.length, input.value.length),
+            0,
+          );
         }
         return;
       }
@@ -728,9 +818,15 @@ export class SidePanel {
       // Move index up
       if (SidePanel.inputHistoryIndex < SidePanel.inputHistory.length - 1) {
         SidePanel.inputHistoryIndex++;
-        input.value = SidePanel.inputHistory[SidePanel.inputHistory.length - 1 - SidePanel.inputHistoryIndex];
+        input.value =
+          SidePanel.inputHistory[
+            SidePanel.inputHistory.length - 1 - SidePanel.inputHistoryIndex
+          ];
         // Move cursor to end
-        setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
+        setTimeout(
+          () => input.setSelectionRange(input.value.length, input.value.length),
+          0,
+        );
       }
       return;
     }
@@ -745,10 +841,16 @@ export class SidePanel {
         // Restore current input
         input.value = SidePanel.currentInput;
       } else {
-        input.value = SidePanel.inputHistory[SidePanel.inputHistory.length - 1 - SidePanel.inputHistoryIndex];
+        input.value =
+          SidePanel.inputHistory[
+            SidePanel.inputHistory.length - 1 - SidePanel.inputHistoryIndex
+          ];
       }
       // Move cursor to end
-      setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
+      setTimeout(
+        () => input.setSelectionRange(input.value.length, input.value.length),
+        0,
+      );
       return;
     }
 
@@ -765,7 +867,9 @@ export class SidePanel {
     if (!question) return;
 
     // Save to input history
-    if (SidePanel.inputHistory[SidePanel.inputHistory.length - 1] !== question) {
+    if (
+      SidePanel.inputHistory[SidePanel.inputHistory.length - 1] !== question
+    ) {
       SidePanel.inputHistory.push(question);
       // Limit history count
       if (SidePanel.inputHistory.length > 50) {
@@ -806,7 +910,8 @@ export class SidePanel {
       if (!apiBase) missing.push("API Base");
       if (!model) missing.push("Model");
 
-      this.appendMessage(`**LLM 未配置**
+      this.appendMessage(
+        `**LLM 未配置**
 
 缺少: ${missing.join(", ")}
 
@@ -815,7 +920,9 @@ export class SidePanel {
 \`/apibase <api-url>\`
 \`/model <model-name>\`
 
-或输入 \`/config\` 查看当前配置`, false);
+或输入 \`/config\` 查看当前配置`,
+        false,
+      );
       return;
     }
 
@@ -830,7 +937,9 @@ export class SidePanel {
       const ZoteroPane = ztoolkit.getGlobal("ZoteroPane");
       const selectedItems = ZoteroPane?.getSelectedItems?.() || [];
       const currentItem = selectedItems.length > 0 ? selectedItems[0] : null;
-      const metadata = currentItem ? PDFService.getItemMetadata(currentItem) : null;
+      const metadata = currentItem
+        ? PDFService.getItemMetadata(currentItem)
+        : null;
       const selectedText = PDFService.getSelectedText() || undefined;
 
       const context: ToolContext = {
@@ -856,12 +965,15 @@ export class SidePanel {
             hasStartedResponse = true;
             this.removeMessage(loadingId);
             responseId = this.appendMessage("", false);
-            responseContentDiv = this.messagesContainer?.querySelector(`#${responseId} div:last-child`) as HTMLElement;
+            responseContentDiv = this.messagesContainer?.querySelector(
+              `#${responseId} div:last-child`,
+            ) as HTMLElement;
           }
           if (responseContentDiv) {
             responseContentDiv.textContent = fullText;
             if (this.messagesContainer) {
-              this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+              this.messagesContainer.scrollTop =
+                this.messagesContainer.scrollHeight;
             }
           }
         },
@@ -877,12 +989,13 @@ export class SidePanel {
         }
       } else if (hasStartedResponse) {
         // Update streaming response to history
-        const historyItem = SidePanel.chatHistory.find(h => h.id === responseId);
+        const historyItem = SidePanel.chatHistory.find(
+          (h) => h.id === responseId,
+        );
         if (historyItem && result.message) {
           historyItem.content = result.message;
         }
       }
-
     } catch (error: any) {
       Logger.error("SidePanel", "Error", error.message);
       this.removeMessage(loadingId);
@@ -942,8 +1055,8 @@ export class SidePanel {
 
     // Filter matching commands
     const allCommands = commandRegistry.getAll();
-    const filteredCommands = allCommands.filter(cmd =>
-      cmd.name.toLowerCase().includes(cmdInput)
+    const filteredCommands = allCommands.filter((cmd) =>
+      cmd.name.toLowerCase().includes(cmdInput),
     );
 
     if (filteredCommands.length === 0) {
@@ -958,7 +1071,10 @@ export class SidePanel {
     menu.innerHTML = "";
 
     filteredCommands.forEach((cmd, index) => {
-      const item = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+      const item = doc.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "div",
+      ) as HTMLElement;
       item.setAttribute("data-index", String(index));
       item.style.cssText = `
         padding: 8px 12px;
@@ -1010,7 +1126,9 @@ export class SidePanel {
    * Hide command menu
    */
   private hideCommandMenu() {
-    const menu = this.panel?.querySelector("#agent-command-menu") as HTMLElement;
+    const menu = this.panel?.querySelector(
+      "#agent-command-menu",
+    ) as HTMLElement;
     if (menu) {
       menu.style.display = "none";
     }
@@ -1020,18 +1138,30 @@ export class SidePanel {
   /**
    * Append message
    */
-  private appendMessage(text: string, isUser: boolean, isLoading = false): string {
+  private appendMessage(
+    text: string,
+    isUser: boolean,
+    isLoading = false,
+  ): string {
     const msgId = `msg-${Date.now()}`;
     if (!this.messagesContainer) return msgId;
 
     if (!isLoading) {
-      SidePanel.chatHistory.push({ role: isUser ? "user" : "assistant", content: text, isUser, id: msgId });
+      SidePanel.chatHistory.push({
+        role: isUser ? "user" : "assistant",
+        content: text,
+        isUser,
+        id: msgId,
+      });
     }
 
     const doc = this.messagesContainer.ownerDocument;
     if (!doc) return msgId;
 
-    const msgDiv = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const msgDiv = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     msgDiv.id = msgId;
     msgDiv.style.cssText = `
       padding: 10px 0;
@@ -1041,12 +1171,18 @@ export class SidePanel {
       ${isLoading ? "opacity: 0.6;" : ""}
     `;
 
-    const label = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const label = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     label.style.cssText = `font-size: 12px; font-weight: 600; margin-bottom: 4px; color: ${isUser ? "#3B82F6" : "#F59E0B"};`;
     label.textContent = isUser ? "You" : "Agent";
     msgDiv.appendChild(label);
 
-    const content = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+    const content = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div",
+    ) as HTMLElement;
     content.style.cssText = `color: var(--fill-primary, #333); white-space: pre-wrap; word-wrap: break-word; user-select: text; cursor: text; ${isLoading ? "font-style: italic;" : ""}`;
     content.textContent = text;
     msgDiv.appendChild(content);
@@ -1097,16 +1233,25 @@ export class SidePanel {
 
     this.messagesContainer.innerHTML = "";
     for (const msg of SidePanel.chatHistory) {
-      const msgDiv = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+      const msgDiv = doc.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "div",
+      ) as HTMLElement;
       msgDiv.id = msg.id;
       msgDiv.style.cssText = `padding: 10px 0; font-size: 13px; line-height: 1.6; border-bottom: 1px solid var(--fill-quinary, #eee);`;
 
-      const label = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+      const label = doc.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "div",
+      ) as HTMLElement;
       label.style.cssText = `font-size: 12px; font-weight: 600; margin-bottom: 4px; color: ${msg.isUser ? "#3B82F6" : "#F59E0B"};`;
       label.textContent = msg.isUser ? "You" : "Agent";
       msgDiv.appendChild(label);
 
-      const content = doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as HTMLElement;
+      const content = doc.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "div",
+      ) as HTMLElement;
       content.style.cssText = `color: var(--fill-primary, #333); white-space: pre-wrap; word-wrap: break-word; user-select: text; cursor: text;`;
       content.textContent = msg.content;
       msgDiv.appendChild(content);

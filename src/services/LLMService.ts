@@ -31,7 +31,10 @@ export class LLMService {
   /**
    * Send chat request (supports streaming)
    */
-  async chat(messages: ChatMessage[], onStream?: (chunk: string, fullText: string) => void): Promise<string> {
+  async chat(
+    messages: ChatMessage[],
+    onStream?: (chunk: string, fullText: string) => void,
+  ): Promise<string> {
     Logger.info("LLM", "Starting chat request", {
       model: this.config.model,
       apiBase: this.config.apiBase,
@@ -88,7 +91,9 @@ export class LLMService {
       ztoolkit.log("LLM API Error:", error);
       if (error?.xmlhttp?.response) {
         const errorData = error.xmlhttp.response;
-        throw new Error(`LLM API Error: ${errorData?.error?.message || JSON.stringify(errorData)}`);
+        throw new Error(
+          `LLM API Error: ${errorData?.error?.message || JSON.stringify(errorData)}`,
+        );
       }
       throw error;
     }
@@ -100,7 +105,7 @@ export class LLMService {
   private async chatStream(
     url: string,
     messages: ChatMessage[],
-    onStream: (chunk: string, fullText: string) => void
+    onStream: (chunk: string, fullText: string) => void,
   ): Promise<string> {
     const requestBody = {
       model: this.config.model,
@@ -108,7 +113,10 @@ export class LLMService {
       stream: true,
     };
 
-    Logger.debug("LLM", "Stream request", { url, messagesCount: messages.length });
+    Logger.debug("LLM", "Stream request", {
+      url,
+      messagesCount: messages.length,
+    });
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -148,13 +156,22 @@ export class LLMService {
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          Logger.info("LLM", "Stream complete", { responseLength: fullText.length });
+          Logger.info("LLM", "Stream complete", {
+            responseLength: fullText.length,
+          });
           resolve(fullText);
         } else {
-          Logger.error("LLM", "Stream error", { status: xhr.status, response: xhr.responseText });
+          Logger.error("LLM", "Stream error", {
+            status: xhr.status,
+            response: xhr.responseText,
+          });
           try {
             const errorData = JSON.parse(xhr.responseText || "{}");
-            reject(new Error(`LLM API Error: ${errorData?.error?.message || xhr.statusText}`));
+            reject(
+              new Error(
+                `LLM API Error: ${errorData?.error?.message || xhr.statusText}`,
+              ),
+            );
           } catch {
             reject(new Error(`LLM API Error: ${xhr.statusText}`));
           }
@@ -180,9 +197,10 @@ export class LLMService {
    * Summarize text
    */
   async summarize(text: string, language: string = "zh"): Promise<string> {
-    const systemPrompt = language === "zh"
-      ? "你是一个学术论文助手。请用简洁的中文总结以下内容，保留关键信息。"
-      : "You are an academic paper assistant. Please summarize the following content concisely, keeping key information.";
+    const systemPrompt =
+      language === "zh"
+        ? "你是一个学术论文助手。请用简洁的中文总结以下内容，保留关键信息。"
+        : "You are an academic paper assistant. Please summarize the following content concisely, keeping key information.";
 
     const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
@@ -198,9 +216,7 @@ export class LLMService {
   async testConnection(): Promise<boolean> {
     try {
       Logger.info("LLM", "Testing connection...");
-      const response = await this.chat([
-        { role: "user", content: "Hello" },
-      ]);
+      const response = await this.chat([{ role: "user", content: "Hello" }]);
       Logger.info("LLM", "Connection test success");
       return response.length > 0;
     } catch (e: any) {

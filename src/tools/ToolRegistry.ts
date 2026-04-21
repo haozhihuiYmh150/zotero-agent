@@ -11,7 +11,14 @@
  * - LLM autonomously selects tools and parameters
  */
 
-import { Tool, ToolContext, ToolParams, ToolResult, StatusCallback, StreamCallback } from "./BaseTool";
+import {
+  Tool,
+  ToolContext,
+  ToolParams,
+  ToolResult,
+  StatusCallback,
+  StreamCallback,
+} from "./BaseTool";
 import { ArxivSearchTool, ArxivDownloadTool } from "./ArxivTools";
 import { SummarizeTool } from "./SummarizeTool";
 import { PaperQATool, GeneralQATool } from "./QATools";
@@ -81,7 +88,10 @@ export class ToolRegistry {
   /**
    * Analyze user intent, return the tool and parameters to use
    */
-  async analyzeIntent(userInput: string, context: ToolContext): Promise<IntentResult> {
+  async analyzeIntent(
+    userInput: string,
+    context: ToolContext,
+  ): Promise<IntentResult> {
     // 1. Check if it's a download command (special handling, no LLM needed)
     const downloadMatch = userInput.match(/下载\s*(?:第?\s*)?(\d+)/);
     if (downloadMatch) {
@@ -94,10 +104,17 @@ export class ToolRegistry {
     }
 
     // 2. Quick match: summarize-related requests go to summarize (tool handles selected text internally)
-    if (/总结|概括|归纳|摘要/.test(userInput) && !/搜索|查找|找/.test(userInput)) {
+    if (
+      /总结|概括|归纳|摘要/.test(userInput) &&
+      !/搜索|查找|找/.test(userInput)
+    ) {
       // Check if it's "总结 xxx 论文" (wants to find specific paper)
       const searchMatch = userInput.match(/总结\s*[《"']?(.{5,})[》"']?/);
-      if (searchMatch && !context.selectedText && !/这篇|当前|选中/.test(userInput)) {
+      if (
+        searchMatch &&
+        !context.selectedText &&
+        !/这篇|当前|选中/.test(userInput)
+      ) {
         // Might want to search for specific paper
         return {
           toolName: "arxiv_search",
@@ -110,7 +127,9 @@ export class ToolRegistry {
       return {
         toolName: "summarize",
         params: {},
-        reason: context.selectedText ? "Summarize selected text" : "Summarize full paper",
+        reason: context.selectedText
+          ? "Summarize selected text"
+          : "Summarize full paper",
         confidence: 0.9,
       };
     }
@@ -202,12 +221,17 @@ ${toolDescriptions}
   /**
    * Fallback intent analysis (not dependent on LLM)
    */
-  private fallbackIntentAnalysis(userInput: string, context: ToolContext): IntentResult {
+  private fallbackIntentAnalysis(
+    userInput: string,
+    context: ToolContext,
+  ): IntentResult {
     // Search
     if (/搜索|查找|找.*论文|arxiv/i.test(userInput)) {
       return {
         toolName: "arxiv_search",
-        params: { keywords: userInput.replace(/搜索|查找|找|论文|arxiv/gi, "").trim() },
+        params: {
+          keywords: userInput.replace(/搜索|查找|找|论文|arxiv/gi, "").trim(),
+        },
         reason: "Keyword match: search",
         confidence: 0.7,
       };
@@ -224,7 +248,10 @@ ${toolDescriptions}
     }
 
     // Questions about current paper
-    if (context.metadata && /这篇|本文|该论文|论文.*方法|论文.*结论/.test(userInput)) {
+    if (
+      context.metadata &&
+      /这篇|本文|该论文|论文.*方法|论文.*结论/.test(userInput)
+    ) {
       return {
         toolName: "paper_qa",
         params: { question: userInput },
@@ -249,7 +276,7 @@ ${toolDescriptions}
     toolName: string,
     params: ToolParams,
     context: ToolContext,
-    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback }
+    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
     const tool = this.get(toolName);
 
@@ -272,7 +299,7 @@ ${toolDescriptions}
   async process(
     userInput: string,
     context: ToolContext,
-    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback }
+    callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
     // 1. Analyze intent
     callbacks.onStatus?.("🤔 分析意图...");
@@ -283,7 +310,7 @@ ${toolDescriptions}
       intent.toolName,
       { userInput, ...intent.params },
       context,
-      callbacks
+      callbacks,
     );
   }
 

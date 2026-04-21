@@ -8,7 +8,9 @@ export class PDFService {
   /**
    * Get PDF attachment from selected Zotero item
    */
-  static async getPDFAttachment(item: Zotero.Item): Promise<Zotero.Item | null> {
+  static async getPDFAttachment(
+    item: Zotero.Item,
+  ): Promise<Zotero.Item | null> {
     Logger.debug("PDF", "getPDFAttachment called", {
       itemId: item.id,
       itemType: item.itemType,
@@ -16,7 +18,10 @@ export class PDFService {
       isRegularItem: item.isRegularItem(),
     });
 
-    if (item.isAttachment() && item.attachmentContentType === "application/pdf") {
+    if (
+      item.isAttachment() &&
+      item.attachmentContentType === "application/pdf"
+    ) {
       Logger.debug("PDF", "Item is already a PDF attachment");
       return item;
     }
@@ -35,7 +40,10 @@ export class PDFService {
           contentType: attachment?.attachmentContentType,
           linkMode: attachment?.attachmentLinkMode,
         });
-        if (attachment && attachment.attachmentContentType === "application/pdf") {
+        if (
+          attachment &&
+          attachment.attachmentContentType === "application/pdf"
+        ) {
           Logger.info("PDF", "Found PDF attachment", { attachmentId: id });
           return attachment as Zotero.Item;
         }
@@ -55,13 +63,15 @@ export class PDFService {
 
       // Get current active reader
       const reader = ZoteroReader.getByTabID(
-        (Zotero.getActiveZoteroPane() as any)?.tabID
+        (Zotero.getActiveZoteroPane() as any)?.tabID,
       );
 
       if (!reader) {
         // Try to get any open reader
         const readers = ZoteroReader._readers;
-        Logger.debug("PDF", "No active reader, checking all readers", { count: readers?.length });
+        Logger.debug("PDF", "No active reader, checking all readers", {
+          count: readers?.length,
+        });
         if (readers && readers.length > 0) {
           const activeReader = readers[readers.length - 1];
           if (activeReader?._internalReader?._primaryView?._iframeWindow) {
@@ -69,7 +79,9 @@ export class PDFService {
             const selection = win.getSelection?.();
             if (selection && selection.toString().trim()) {
               const text = selection.toString().trim();
-              Logger.info("PDF", "Got selected text from reader", { length: text.length });
+              Logger.info("PDF", "Got selected text from reader", {
+                length: text.length,
+              });
               return text;
             }
           }
@@ -123,15 +135,19 @@ export class PDFService {
         const cacheFile = Fulltext.getItemCacheFile(pdfItem);
         Logger.debug("PDF", "Cache file", { path: cacheFile?.path });
 
-        if (cacheFile && await cacheFile.exists()) {
+        if (cacheFile && (await cacheFile.exists())) {
           const content = await Zotero.File.getContentsAsync(cacheFile.path);
           if (content && typeof content === "string" && content.length > 0) {
-            Logger.info("PDF", "Got content from cache file", { length: content.length });
+            Logger.info("PDF", "Got content from cache file", {
+              length: content.length,
+            });
             return content;
           }
         }
       } catch (cacheErr: any) {
-        Logger.debug("PDF", "Cache file read failed", { error: cacheErr.message });
+        Logger.debug("PDF", "Cache file read failed", {
+          error: cacheErr.message,
+        });
       }
 
       // Check index status
@@ -143,7 +159,7 @@ export class PDFService {
           UNINDEXED: Fulltext.INDEX_STATE_UNINDEXED,
           PARTIAL: Fulltext.INDEX_STATE_PARTIAL,
           INDEXED: Fulltext.INDEX_STATE_INDEXED,
-        }
+        },
       });
 
       // If not indexed, try to trigger indexing
@@ -152,25 +168,31 @@ export class PDFService {
         await Fulltext.indexItems([pdfItem.id], { complete: true });
 
         // Wait for indexing to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // Try to read cache file again
         try {
           const cacheFile = Fulltext.getItemCacheFile(pdfItem);
-          if (cacheFile && await cacheFile.exists()) {
+          if (cacheFile && (await cacheFile.exists())) {
             const content = await Zotero.File.getContentsAsync(cacheFile.path);
             if (content && typeof content === "string" && content.length > 0) {
-              Logger.info("PDF", "Got content after indexing", { length: content.length });
+              Logger.info("PDF", "Got content after indexing", {
+                length: content.length,
+              });
               return content;
             }
           }
         } catch (cacheErr: any) {
-          Logger.debug("PDF", "Post-index cache read failed", { error: cacheErr.message });
+          Logger.debug("PDF", "Post-index cache read failed", {
+            error: cacheErr.message,
+          });
         }
       }
 
       const newIndexState = await Fulltext.getIndexedState(pdfItem);
-      throw new Error(`Unable to extract PDF text. Index state: ${newIndexState}. Please ensure the PDF has been indexed by Zotero.`);
+      throw new Error(
+        `Unable to extract PDF text. Index state: ${newIndexState}. Please ensure the PDF has been indexed by Zotero.`,
+      );
     } catch (error: any) {
       Logger.error("PDF", "extractFullText error", {
         message: error.message,
@@ -193,10 +215,16 @@ export class PDFService {
     const parentItem = parentItemID ? Zotero.Items.get(parentItemID) : item;
 
     return {
-      title: parentItem?.getField("title") as string || "Unknown",
-      authors: parentItem?.getCreators()?.map((c: any) => `${c.firstName || ""} ${c.lastName || ""}`.trim()).join(", ") || "Unknown",
-      abstract: parentItem?.getField("abstractNote") as string || "",
-      year: (parentItem?.getField("date") as string || "").substring(0, 4) || "Unknown",
+      title: (parentItem?.getField("title") as string) || "Unknown",
+      authors:
+        parentItem
+          ?.getCreators()
+          ?.map((c: any) => `${c.firstName || ""} ${c.lastName || ""}`.trim())
+          .join(", ") || "Unknown",
+      abstract: (parentItem?.getField("abstractNote") as string) || "",
+      year:
+        ((parentItem?.getField("date") as string) || "").substring(0, 4) ||
+        "Unknown",
     };
   }
 
