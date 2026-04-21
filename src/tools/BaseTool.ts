@@ -12,13 +12,16 @@
  */
 
 import { Logger } from "../utils/logger";
+import { PaperRef, ChatMessage } from "../types";
 
 /**
  * Tool execution context
  */
 export interface ToolContext {
-  /** Currently selected Zotero item */
+  /** Currently selected Zotero item (first one if multiple selected) */
   currentItem: Zotero.Item | null;
+  /** All selected Zotero items */
+  selectedItems: Zotero.Item[];
   /** Metadata of current item */
   metadata: {
     title?: string;
@@ -26,10 +29,19 @@ export interface ToolContext {
     year?: string;
     abstract?: string;
   } | null;
+  /** Metadata of all selected items */
+  allMetadata: Array<{
+    title?: string;
+    authors?: string;
+    year?: string;
+    abstract?: string;
+  }>;
   /** Selected text in PDF */
   selectedText?: string;
-  /** Chat history */
-  chatHistory?: Array<{ role: string; content: string }>;
+  /** Paper references (lightweight, for context tracking) */
+  paperRefs?: PaperRef[];
+  /** Chat history with context */
+  chatHistory?: ChatMessage[];
 }
 
 /**
@@ -67,6 +79,29 @@ export type StreamCallback = (chunk: string, fullText: string) => void;
  * Status update callback
  */
 export type StatusCallback = (status: string) => void;
+
+/**
+ * Tool call event for UI display (like DUCC's "Thinking" blocks)
+ */
+export interface ToolCallEvent {
+  /** Unique ID for this tool call */
+  id: string;
+  /** Tool name */
+  name: string;
+  /** Tool arguments */
+  args: Record<string, any>;
+  /** Status: pending, running, completed, error */
+  status: "pending" | "running" | "completed" | "error";
+  /** Result summary (shown when completed) */
+  result?: string;
+  /** Error message */
+  error?: string;
+}
+
+/**
+ * Tool call callback - for displaying tool calls in UI
+ */
+export type ToolCallCallback = (event: ToolCallEvent) => void;
 
 /**
  * Tool interface

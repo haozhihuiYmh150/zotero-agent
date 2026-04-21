@@ -1,5 +1,5 @@
 /**
- * ArXiv Search Tool
+ * PubMed Tools - Search and download papers from PubMed
  */
 
 import {
@@ -10,11 +10,11 @@ import {
   StatusCallback,
   StreamCallback,
 } from "./BaseTool";
-import { ArxivService, ArxivPaper } from "../services/ArxivService";
+import { PubMedService, PubMedPaper } from "../services/PubMedService";
 
-export class ArxivSearchTool extends BaseTool {
-  name = "arxiv_search";
-  description = "在 arXiv 上搜索学术论文。当用户想要查找论文、搜索文献时使用。";
+export class PubMedSearchTool extends BaseTool {
+  name = "pubmed_search";
+  description = "在 PubMed 上搜索生物医学论文。当用户想要查找医学、生物学相关文献时使用。";
   parameters = [
     {
       name: "keywords",
@@ -29,9 +29,9 @@ export class ArxivSearchTool extends BaseTool {
   ];
 
   // Save recent search results for downloading
-  private static lastResults: ArxivPaper[] = [];
+  private static lastResults: PubMedPaper[] = [];
 
-  static getLastResults(): ArxivPaper[] {
+  static getLastResults(): PubMedPaper[] {
     return this.lastResults;
   }
 
@@ -50,11 +50,11 @@ export class ArxivSearchTool extends BaseTool {
     }
 
     this.log("info", "Searching", { keywords, maxResults });
-    callbacks.onStatus?.(`🔍 正在搜索: ${keywords}`);
+    callbacks.onStatus?.(`🔍 正在搜索 PubMed: ${keywords}`);
 
     try {
-      const result = await ArxivService.search(keywords, maxResults);
-      ArxivSearchTool.lastResults = result.papers;
+      const result = await PubMedService.search(keywords, maxResults);
+      PubMedSearchTool.lastResults = result.papers;
 
       if (result.papers.length === 0) {
         return {
@@ -64,14 +64,25 @@ export class ArxivSearchTool extends BaseTool {
         };
       }
 
+      // Check if we should show rate limit reminder
+      const showReminder = PubMedService.shouldShowRateLimitReminder();
+
       // Format results
-      let message = `**arXiv 搜索结果** (${keywords})\n\n`;
+      let message = `**PubMed 搜索结果** (${keywords})\n`;
+      if (showReminder) {
+        message += `> ⚠️ PubMed 有频率限制，请勿短时间内大量搜索\n`;
+      }
+      message += `\n🆓 = 有免费全文(PMC)\n\n`;
+
       result.papers.forEach((paper, index) => {
-        message += ArxivService.formatPaperForDisplay(paper, index) + "\n\n";
+        message += PubMedService.formatPaperForDisplay(paper, index) + "\n\n";
       });
       message += `---\n输入 "下载 1" 可下载对应论文`;
 
-      this.log("info", "Search complete", { count: result.papers.length });
+      this.log("info", "Search complete", {
+        count: result.papers.length,
+        withPmc: result.papers.filter(p => p.hasFreeFullText).length,
+      });
 
       return {
         success: true,
@@ -88,12 +99,9 @@ export class ArxivSearchTool extends BaseTool {
   }
 }
 
-/**
- * ArXiv Download Tool
- */
-export class ArxivDownloadTool extends BaseTool {
-  name = "arxiv_download";
-  description = "下载 arXiv 论文并导入到 Zotero。需要先搜索论文。";
+export class PubMedDownloadTool extends BaseTool {
+  name = "pubmed_download";
+  description = "下载 PubMed 论文并导入到 Zotero。需要先搜索论文。如果有 PMC 全文会下载 PDF，否则只导入元数据。";
   parameters = [
     {
       name: "index",
@@ -108,7 +116,7 @@ export class ArxivDownloadTool extends BaseTool {
     callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
     const index = parseInt(params.index) - 1;
-    const papers = ArxivSearchTool.getLastResults();
+    const papers = PubMedSearchTool.getLastResults();
 
     if (papers.length === 0) {
       return {
@@ -125,18 +133,20 @@ export class ArxivDownloadTool extends BaseTool {
     }
 
     const paper = papers[index];
-    this.log("info", "Downloading", { id: paper.id, title: paper.title });
+    this.log("info", "Downloading", { pmid: paper.pmid, title: paper.title });
     callbacks.onStatus?.(`📥 正在下载: ${paper.title.substring(0, 40)}...`);
 
     try {
-      const item = await ArxivService.downloadAndImport(paper);
+      const { item, hasFullText } = await PubMedService.downloadAndImport(paper);
 
       if (item) {
-        this.log("info", "Download success", { itemId: item.id });
+        this.log("info", "Download success", { itemId: item.id, hasFullText });
+        const statusEmoji = hasFullText ? "✅" : "⚠️";
+        const statusText = hasFullText ? "已下载PDF" : "仅元数据，无免费全文";
         return {
           success: true,
-          message: `✅ 下载成功!\narXiv:${paper.id} - ${paper.title}\n已添加到 Zotero`,
-          data: { item, paper },
+          message: `${statusEmoji} 下载成功!\nPMID:${paper.pmid} - ${paper.title}\n${statusText}\n已添加到 Zotero`,
+          data: { item, paper, hasFullText },
         };
       } else {
         return {
@@ -154,13 +164,10 @@ export class ArxivDownloadTool extends BaseTool {
   }
 }
 
-/**
- * ArXiv Batch Download Tool - Download multiple papers at once
- */
-export class ArxivBatchDownloadTool extends BaseTool {
-  name = "arxiv_download_batch";
+export class PubMedBatchDownloadTool extends BaseTool {
+  name = "pubmed_download_batch";
   description =
-    "批量下载多篇 arXiv 论文。当用户要下载多篇论文时，优先使用此工具而不是多次调用 arxiv_download。";
+    "批量下载多篇 PubMed 论文。当用户要下载多篇论文时，优先使用此工具而不是多次调用 pubmed_download。";
   parameters = [
     {
       name: "indices",
@@ -174,7 +181,7 @@ export class ArxivBatchDownloadTool extends BaseTool {
     context: ToolContext,
     callbacks: { onStatus?: StatusCallback; onStream?: StreamCallback },
   ): Promise<ToolResult> {
-    const papers = ArxivSearchTool.getLastResults();
+    const papers = PubMedSearchTool.getLastResults();
 
     if (papers.length === 0) {
       return {
@@ -199,7 +206,13 @@ export class ArxivBatchDownloadTool extends BaseTool {
 
     this.log("info", "Batch downloading", { indices: indices.map((i) => i + 1) });
 
-    const results: Array<{ success: boolean; title: string; arxivId: string; error?: string }> = [];
+    const results: Array<{
+      success: boolean;
+      title: string;
+      pmid: string;
+      hasFullText: boolean;
+      error?: string;
+    }> = [];
 
     for (let i = 0; i < indices.length; i++) {
       const index = indices[i];
@@ -207,27 +220,32 @@ export class ArxivBatchDownloadTool extends BaseTool {
       callbacks.onStatus?.(`📥 下载中 (${i + 1}/${indices.length}): ${paper.title.substring(0, 30)}...`);
 
       try {
-        const item = await ArxivService.downloadAndImport(paper);
+        const { item, hasFullText } = await PubMedService.downloadAndImport(paper);
         if (item) {
-          this.log("info", "Download success", { itemId: item.id });
-          results.push({ success: true, title: paper.title, arxivId: paper.id });
+          this.log("info", "Download success", { itemId: item.id, hasFullText });
+          results.push({ success: true, title: paper.title, pmid: paper.pmid, hasFullText });
         } else {
-          results.push({ success: false, title: paper.title, arxivId: paper.id, error: "下载失败" });
+          results.push({ success: false, title: paper.title, pmid: paper.pmid, hasFullText: false, error: "下载失败" });
         }
       } catch (error: any) {
         this.log("error", "Download failed", error.message);
-        results.push({ success: false, title: paper.title, arxivId: paper.id, error: error.message });
+        results.push({ success: false, title: paper.title, pmid: paper.pmid, hasFullText: false, error: error.message });
       }
     }
 
     const successCount = results.filter((r) => r.success).length;
+    const withPdfCount = results.filter((r) => r.success && r.hasFullText).length;
     const summary = results
-      .map((r, i) => `${i + 1}. ${r.success ? "✅" : "❌"} arXiv:${r.arxivId} - ${r.title.substring(0, 40)}${r.title.length > 40 ? "..." : ""}`)
+      .map((r, i) => {
+        const emoji = r.success ? (r.hasFullText ? "✅" : "⚠️") : "❌";
+        const suffix = r.success && !r.hasFullText ? " (仅元数据)" : "";
+        return `${i + 1}. ${emoji} PMID:${r.pmid} - ${r.title.substring(0, 35)}${r.title.length > 35 ? "..." : ""}${suffix}`;
+      })
       .join("\n");
 
     return {
       success: successCount > 0,
-      message: `已完成 ${successCount}/${indices.length} 篇论文的下载，均已添加到你的Zotero库中：\n${summary}`,
+      message: `已完成 ${successCount}/${indices.length} 篇论文的下载（${withPdfCount} 篇有全文PDF），均已添加到你的Zotero库中：\n${summary}`,
       data: { results },
     };
   }

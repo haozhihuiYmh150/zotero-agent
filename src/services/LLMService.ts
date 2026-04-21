@@ -1,5 +1,10 @@
 /**
  * LLM Service - Call OpenAI-compatible API
+ *
+ * Supports:
+ * - Streaming responses
+ * - Function Calling / Tool Use
+ * - Streaming + Tool Use (content streams, tool_calls accumulated)
  */
 
 import { getPref } from "../utils/prefs";
@@ -12,8 +17,37 @@ export interface LLMConfig {
 }
 
 export interface ChatMessage {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+}
+
+export interface ToolDefinition {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: "object";
+      properties: Record<string, any>;
+      required?: string[];
+    };
+  };
+}
+
+export interface ToolCall {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+export interface ChatCompletionResponse {
+  content: string | null;
+  tool_calls?: ToolCall[];
 }
 
 export class LLMService {
@@ -35,11 +69,39 @@ export class LLMService {
     messages: ChatMessage[],
     onStream?: (chunk: string, fullText: string) => void,
   ): Promise<string> {
+    const result = await this.chatWithToolsStream(messages, undefined, onStream);
+    return result.content || "";
+  }
+
+  /**
+   * Send chat request with tools (non-streaming, for backward compatibility)
+   */
+  async chatWithTools(
+    messages: ChatMessage[],
+    tools?: ToolDefinition[],
+  ): Promise<ChatCompletionResponse> {
+    return this.chatWithToolsStream(messages, tools, undefined);
+  }
+
+  /**
+   * Send chat request with tools and streaming support
+   *
+   * Behavior:
+   * - Content is streamed in real-time via onStream callback
+   * - Tool calls are accumulated and returned at the end
+   * - If LLM returns tool_calls, content may be partial or empty
+   */
+  async chatWithToolsStream(
+    messages: ChatMessage[],
+    tools?: ToolDefinition[],
+    onStream?: (chunk: string, fullText: string) => void,
+  ): Promise<ChatCompletionResponse> {
     Logger.info("LLM", "Starting chat request", {
       model: this.config.model,
       apiBase: this.config.apiBase,
       apiKeySet: !!this.config.apiKey,
       streaming: !!onStream,
+      toolsCount: tools?.length || 0,
     });
 
     if (!this.config.apiKey) {
@@ -49,73 +111,35 @@ export class LLMService {
 
     const url = `${this.config.apiBase}/chat/completions`;
 
-    // If streaming callback is provided, use streaming request
-    if (onStream) {
-      return this.chatStream(url, messages, onStream);
-    }
-
-    // Non-streaming request
-    try {
-      const requestBody = {
-        model: this.config.model,
-        messages: messages,
-        stream: false,
-      };
-      Logger.debug("LLM", "Request", { url, messagesCount: messages.length });
-
-      const response = await Zotero.HTTP.request("POST", url, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.config.apiKey}`,
-        },
-        body: JSON.stringify(requestBody),
-        responseType: "json",
-      });
-
-      Logger.debug("LLM", "Response status", response.status);
-      const data = response.response as any;
-
-      if (data?.choices?.[0]?.message?.content) {
-        const content = data.choices[0].message.content;
-        Logger.info("LLM", "Success", { responseLength: content.length });
-        return content;
-      }
-
-      Logger.error("LLM", "Invalid response structure", data);
-      throw new Error("Invalid response from LLM API");
-    } catch (error: any) {
-      Logger.error("LLM", "API Error", {
-        message: error.message,
-        xmlhttpResponse: error?.xmlhttp?.response,
-      });
-      ztoolkit.log("LLM API Error:", error);
-      if (error?.xmlhttp?.response) {
-        const errorData = error.xmlhttp.response;
-        throw new Error(
-          `LLM API Error: ${errorData?.error?.message || JSON.stringify(errorData)}`,
-        );
-      }
-      throw error;
-    }
+    // Use streaming for all requests (better UX)
+    return this.streamWithTools(url, messages, tools, onStream);
   }
 
   /**
-   * Streaming request
+   * Streaming request with tool support
+   *
+   * Parses SSE stream, accumulates content and tool_calls
    */
-  private async chatStream(
+  private async streamWithTools(
     url: string,
     messages: ChatMessage[],
-    onStream: (chunk: string, fullText: string) => void,
-  ): Promise<string> {
-    const requestBody = {
+    tools?: ToolDefinition[],
+    onStream?: (chunk: string, fullText: string) => void,
+  ): Promise<ChatCompletionResponse> {
+    const requestBody: any = {
       model: this.config.model,
       messages: messages,
       stream: true,
     };
 
-    Logger.debug("LLM", "Stream request", {
+    if (tools && tools.length > 0) {
+      requestBody.tools = tools;
+    }
+
+    Logger.debug("LLM", "Stream request with tools", {
       url,
       messagesCount: messages.length,
+      tools: tools?.map((t) => t.function.name),
     });
 
     return new Promise((resolve, reject) => {
@@ -124,8 +148,14 @@ export class LLMService {
       xhr.setRequestHeader("Content-Type", "application/json");
       xhr.setRequestHeader("Authorization", `Bearer ${this.config.apiKey}`);
 
-      let fullText = "";
+      let fullContent = "";
       let lastProcessedLength = 0;
+
+      // Accumulate tool calls (streaming tool_calls come in parts)
+      const toolCallsMap: Map<
+        number,
+        { id: string; type: string; function: { name: string; arguments: string } }
+      > = new Map();
 
       xhr.onprogress = () => {
         const responseText = xhr.responseText || "";
@@ -142,10 +172,43 @@ export class LLMService {
             }
             try {
               const json = JSON.parse(data);
-              const delta = json.choices?.[0]?.delta?.content;
-              if (delta) {
-                fullText += delta;
-                onStream(delta, fullText);
+              const delta = json.choices?.[0]?.delta;
+
+              if (!delta) continue;
+
+              // Handle content delta
+              if (delta.content) {
+                fullContent += delta.content;
+                if (onStream) {
+                  onStream(delta.content, fullContent);
+                }
+              }
+
+              // Handle tool_calls delta
+              if (delta.tool_calls) {
+                for (const tc of delta.tool_calls) {
+                  const index = tc.index ?? 0;
+
+                  if (!toolCallsMap.has(index)) {
+                    // New tool call
+                    toolCallsMap.set(index, {
+                      id: tc.id || "",
+                      type: tc.type || "function",
+                      function: {
+                        name: tc.function?.name || "",
+                        arguments: tc.function?.arguments || "",
+                      },
+                    });
+                  } else {
+                    // Update existing tool call
+                    const existing = toolCallsMap.get(index)!;
+                    if (tc.id) existing.id = tc.id;
+                    if (tc.type) existing.type = tc.type;
+                    if (tc.function?.name) existing.function.name += tc.function.name;
+                    if (tc.function?.arguments)
+                      existing.function.arguments += tc.function.arguments;
+                  }
+                }
               }
             } catch (e) {
               // Ignore parse errors (may be incomplete JSON)
@@ -156,10 +219,33 @@ export class LLMService {
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
+          // Convert tool calls map to array
+          const toolCalls: ToolCall[] = [];
+          const sortedIndices = Array.from(toolCallsMap.keys()).sort((a, b) => a - b);
+          for (const index of sortedIndices) {
+            const tc = toolCallsMap.get(index)!;
+            if (tc.id && tc.function.name) {
+              toolCalls.push({
+                id: tc.id,
+                type: "function",
+                function: {
+                  name: tc.function.name,
+                  arguments: tc.function.arguments,
+                },
+              });
+            }
+          }
+
           Logger.info("LLM", "Stream complete", {
-            responseLength: fullText.length,
+            contentLength: fullContent.length,
+            toolCallsCount: toolCalls.length,
+            toolNames: toolCalls.map((tc) => tc.function.name),
           });
-          resolve(fullText);
+
+          resolve({
+            content: fullContent || null,
+            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          });
         } else {
           Logger.error("LLM", "Stream error", {
             status: xhr.status,
@@ -188,7 +274,7 @@ export class LLMService {
         reject(new Error("Request timeout"));
       };
 
-      xhr.timeout = 60000; // 60 second timeout
+      xhr.timeout = 120000; // 120 second timeout
       xhr.send(JSON.stringify(requestBody));
     });
   }

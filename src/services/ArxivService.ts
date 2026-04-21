@@ -42,43 +42,109 @@ export class ArxivService {
       timeout: this.TIMEOUT_MS,
     });
 
-    try {
-      // Build search URL
-      const searchQuery = encodeURIComponent(query);
-      const url = `${this.API_BASE}?search_query=all:${searchQuery}&start=0&max_results=${maxResults}&sortBy=relevance&sortOrder=descending`;
+    // Build search URL
+    const searchQuery = encodeURIComponent(query);
+    const url = `${this.API_BASE}?search_query=all:${searchQuery}&start=0&max_results=${maxResults}&sortBy=relevance&sortOrder=descending`;
 
-      Logger.debug("Arxiv", "Request URL", url);
+    Logger.debug("Arxiv", "Request URL", url);
 
-      const response = await Zotero.HTTP.request("GET", url, {
-        responseType: "text",
-        timeout: this.TIMEOUT_MS,
+    // Retry logic for 429 errors
+    const maxRetries = 2;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Wait before retry (exponential backoff: 5s, 10s)
+          const waitTime = 5000 * attempt;
+          Logger.info("Arxiv", `Retry ${attempt}/${maxRetries} after ${waitTime}ms`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+
+        // Use native XMLHttpRequest instead of Zotero.HTTP for debugging
+        const response = await this.makeRequest(url);
+
+        const papers = this.parseAtomFeed(response);
+        Logger.info("Arxiv", "Search complete", { resultsCount: papers.length });
+
+        return {
+          papers,
+          totalResults: papers.length,
+          query,
+        };
+      } catch (error: any) {
+        lastError = error;
+        Logger.error("Arxiv", `Search failed (attempt ${attempt + 1})`, error.message);
+
+        // Only retry on 429 errors
+        if (!error.message?.includes("429")) {
+          break;
+        }
+      }
+    }
+
+    // All retries failed, throw user-friendly error
+    if (lastError?.message?.includes("timeout") || lastError?.message?.includes("timed out")) {
+      throw new Error("arXiv 请求超时，网络可能较慢，请稍后重试或使用代理");
+    }
+    if (lastError?.message?.includes("429")) {
+      throw new Error("arXiv 请求频率限制，已重试但仍失败，请等待 1-2 分钟后重试");
+    }
+    throw lastError || new Error("arXiv 搜索失败");
+  }
+
+  /**
+   * Make HTTP request using native XMLHttpRequest (for debugging header issues)
+   */
+  private static makeRequest(url: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+
+      // Set minimal headers (like curl does)
+      xhr.setRequestHeader("User-Agent", "ZoteroAgent/1.0 (mailto:zotero-agent@example.com)");
+      xhr.setRequestHeader("Accept", "application/xml, text/xml, */*");
+
+      // Log what we're sending
+      Logger.debug("Arxiv", "XHR Request", {
+        method: "GET",
+        url: url,
+        headers: {
+          "User-Agent": "ZoteroAgent/1.0",
+          "Accept": "application/xml, text/xml, */*",
+        },
       });
 
-      if (response.status !== 200) {
-        throw new Error(`arXiv API returned status ${response.status}`);
-      }
+      xhr.onload = () => {
+        Logger.debug("Arxiv", "XHR Response", {
+          status: xhr.status,
+          statusText: xhr.statusText,
+          responseHeaders: xhr.getAllResponseHeaders(),
+          responseLength: xhr.responseText?.length,
+        });
 
-      const papers = this.parseAtomFeed(response.response as string);
-      Logger.info("Arxiv", "Search complete", { resultsCount: papers.length });
-
-      return {
-        papers,
-        totalResults: papers.length,
-        query,
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr.responseText || "");
+        } else if (xhr.status === 429) {
+          reject(new Error(`HTTP 429: Rate limit exceeded. Response: ${xhr.responseText?.substring(0, 200)}`));
+        } else {
+          reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+        }
       };
-    } catch (error: any) {
-      Logger.error("Arxiv", "Search failed", error.message);
-      // Provide more user-friendly error message
-      if (
-        error.message?.includes("timeout") ||
-        error.message?.includes("timed out")
-      ) {
-        throw new Error(
-          "arXiv request timed out. Network may be slow, please retry later or use a proxy",
-        );
-      }
-      throw error;
-    }
+
+      xhr.onerror = () => {
+        Logger.error("Arxiv", "XHR Network error");
+        reject(new Error("Network error"));
+      };
+
+      xhr.ontimeout = () => {
+        Logger.error("Arxiv", "XHR Timeout");
+        reject(new Error("Request timeout"));
+      };
+
+      xhr.timeout = this.TIMEOUT_MS;
+      xhr.send();
+    });
   }
 
   /**

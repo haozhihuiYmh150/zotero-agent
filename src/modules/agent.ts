@@ -1,9 +1,120 @@
+import { marked } from "marked";
+import markedKatex from "marked-katex-extension";
 import { getString, getLocaleID } from "../utils/locale";
 import { LLMService } from "../services/LLMService";
 import { PDFService } from "../services/PDFService";
 import { ArxivService, ArxivPaper } from "../services/ArxivService";
 import { getPref } from "../utils/prefs";
 import { Logger } from "../utils/logger";
+
+// Configure marked with KaTeX support
+marked.use(
+  markedKatex({
+    throwOnError: false, // Don't throw on invalid LaTeX
+    output: "html", // Output HTML (not MathML)
+  }),
+);
+marked.use({
+  breaks: true, // Convert \n to <br>
+  gfm: true, // GitHub Flavored Markdown
+});
+
+/**
+ * Render markdown to HTML
+ * User messages: plain text (escape HTML)
+ * Agent messages: render markdown
+ */
+function renderMarkdown(text: string, isUser: boolean): string {
+  if (isUser) {
+    // User messages: escape HTML and preserve whitespace
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br/>");
+  }
+  // Agent messages: render markdown, then fix self-closing tags for XHTML compatibility
+  const html = marked.parse(text) as string;
+  return html
+    .replace(/<br>/g, "<br/>")
+    .replace(/<hr>/g, "<hr/>")
+    .replace(/<img([^>]*)>/g, "<img$1/>");
+}
+
+/**
+ * Get markdown content styles for Agent messages
+ */
+function getMarkdownStyles(): string {
+  return `
+    /* Markdown content styles */
+    .markdown-content p { margin: 0 0 8px 0; }
+    .markdown-content p:last-child { margin-bottom: 0; }
+    .markdown-content code {
+      background: var(--fill-quinary, #f5f5f5);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .markdown-content pre {
+      background: var(--fill-quinary, #f5f5f5);
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .markdown-content pre code {
+      background: none;
+      padding: 0;
+    }
+    .markdown-content ul, .markdown-content ol {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+    .markdown-content li { margin: 4px 0; }
+    .markdown-content blockquote {
+      border-left: 3px solid var(--fill-tertiary, #ccc);
+      margin: 8px 0;
+      padding-left: 12px;
+      color: var(--fill-secondary, #666);
+    }
+    .markdown-content table {
+      border-collapse: collapse;
+      margin: 8px 0;
+      font-size: 12px;
+    }
+    .markdown-content th, .markdown-content td {
+      border: 1px solid var(--fill-quinary, #ddd);
+      padding: 6px 10px;
+    }
+    .markdown-content th {
+      background: var(--fill-quinary, #f5f5f5);
+    }
+    .markdown-content a {
+      color: #3B82F6;
+      text-decoration: none;
+    }
+    .markdown-content a:hover {
+      text-decoration: underline;
+    }
+    .markdown-content strong { font-weight: 600; }
+    .markdown-content em { font-style: italic; }
+
+    /* KaTeX styles */
+    .katex { font-size: 1.1em; }
+    .katex-display {
+      display: block;
+      margin: 12px 0;
+      text-align: center;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .katex-display > .katex {
+      display: inline-block;
+      text-align: initial;
+    }
+  `;
+}
 
 /**
  * Zotero Agent - Core functionality module
@@ -119,23 +230,19 @@ export class AgentCore {
     const logoIcon = `chrome://${addon.data.config.addonRef}/content/icons/favicon@0.5x.png`;
 
     const welcomeHTML = `
-      <html:div style="padding: 12px; color: var(--fill-primary);">
-        <html:div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
-          <html:img src="chrome://${addon.data.config.addonRef}/content/icons/favicon.png" style="width: 36px; height: 36px; border-radius: 6px;" />
-          <html:div>
-            <html:div style="font-weight: 600; font-size: 14px;">Zotero Agent</html:div>
-            <html:div style="font-size: 11px; color: var(--fill-secondary);">AI 研究助手</html:div>
-          </html:div>
-        </html:div>
-        <html:div style="font-size: 13px; line-height: 1.6; color: var(--fill-secondary);">
-          <html:p style="margin: 0 0 12px 0;">👋 你好！我是 Zotero Agent，你的 AI 研究助手。</html:p>
+      <html:div id="agent-welcome" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; color: var(--fill-secondary); text-align: center;">
+        <html:pre style="font-family: monospace; font-size: 12px; line-height: 1.2; margin: 0 0 16px 0; color: #F5A623;">    __
+___( o)&gt;
+\\ &lt;_. )
+ \`---'</html:pre>
+        <html:div style="font-weight: 600; font-size: 14px; margin-bottom: 12px; color: var(--fill-primary);">Zotero Agent</html:div>
+        <html:div style="font-size: 13px; line-height: 1.6;">
           <html:p style="margin: 0 0 8px 0;">我可以帮你：</html:p>
-          <html:ul style="margin: 0; padding-left: 20px;">
-            <html:li>📄 总结论文要点</html:li>
-            <html:li>🔍 解答研究问题</html:li>
-            <html:li>📝 提取关键信息</html:li>
-            <html:li>🔎 在 arXiv 搜索相关论文</html:li>
-          </html:ul>
+          <html:div style="text-align: left; display: inline-block;">
+            <html:p style="margin: 4px 0;">• 总结论文要点</html:p>
+            <html:p style="margin: 4px 0;">• 解答研究问题</html:p>
+            <html:p style="margin: 4px 0;">• 搜索 arXiv 论文</html:p>
+          </html:div>
         </html:div>
       </html:div>
     `;
@@ -249,7 +356,7 @@ export class AgentCore {
               if (!messagesDiv) return;
 
               // Clear welcome message (only on first send)
-              if (messagesDiv.querySelector("ul")) {
+              if (messagesDiv.querySelector("#agent-welcome")) {
                 messagesDiv.innerHTML = "";
               }
 
@@ -471,6 +578,14 @@ ${fullText}
     // Skip if message already exists
     if (container.querySelector(`#${msgId}`)) return;
 
+    // Inject markdown styles if not already present
+    if (!doc.getElementById("zotero-agent-markdown-styles")) {
+      const styleEl = doc.createElement("style");
+      styleEl.id = "zotero-agent-markdown-styles";
+      styleEl.textContent = getMarkdownStyles();
+      doc.head?.appendChild(styleEl);
+    }
+
     const msgDiv = doc.createElement("div");
     msgDiv.id = msgId;
     msgDiv.style.cssText = `
@@ -494,13 +609,23 @@ ${fullText}
 
     // Add content
     const contentDiv = doc.createElement("div");
-    contentDiv.style.cssText = `
-      color: var(--fill-primary);
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      ${isLoading ? "font-style: italic;" : ""}
-    `;
-    contentDiv.textContent = text;
+    // Use different styles for user vs agent messages
+    if (isUser || isLoading) {
+      contentDiv.style.cssText = `
+        color: var(--fill-primary);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        ${isLoading ? "font-style: italic;" : ""}
+      `;
+      contentDiv.textContent = text;
+    } else {
+      contentDiv.className = "markdown-content";
+      contentDiv.style.cssText = `
+        color: var(--fill-primary);
+        word-wrap: break-word;
+      `;
+      contentDiv.innerHTML = renderMarkdown(text, isUser);
+    }
     msgDiv.appendChild(contentDiv);
 
     container.appendChild(msgDiv);

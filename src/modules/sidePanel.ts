@@ -7,12 +7,130 @@
  * - Can be collapsed to a small icon, takes no space
  */
 
+import { marked } from "marked";
+import markedKatex from "marked-katex-extension";
 import { Logger } from "../utils/logger";
 import { LLMService } from "../services/LLMService";
 import { PDFService } from "../services/PDFService";
 import { getPref } from "../utils/prefs";
-import { ToolRegistry, ToolContext } from "../tools";
+import { ToolUseRegistry, ToolContext, ToolCallEvent } from "../tools";
 import { commandRegistry } from "../commands";
+import {
+  ChatMessage,
+  MessageContext,
+  PaperRef,
+  createPaperRef,
+  buildPapersDescription,
+} from "../types";
+
+// Configure marked with KaTeX support
+marked.use(
+  markedKatex({
+    throwOnError: false, // Don't throw on invalid LaTeX
+    output: "html", // Output HTML (not MathML)
+  }),
+);
+marked.use({
+  breaks: true, // Convert \n to <br>
+  gfm: true, // GitHub Flavored Markdown
+});
+
+/**
+ * Render markdown to HTML
+ * User messages: plain text (escape HTML)
+ * Agent messages: render markdown
+ */
+function renderMarkdown(text: string, isUser: boolean): string {
+  if (isUser) {
+    // User messages: escape HTML and preserve whitespace
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br/>");
+  }
+  // Agent messages: render markdown, then fix self-closing tags for XHTML compatibility
+  const html = marked.parse(text) as string;
+  return html
+    .replace(/<br>/g, "<br/>")
+    .replace(/<hr>/g, "<hr/>")
+    .replace(/<img([^>]*)>/g, "<img$1/>");
+}
+
+/**
+ * Get markdown content styles for Agent messages
+ */
+function getMarkdownStyles(): string {
+  return `
+    /* Markdown content styles */
+    .markdown-content p { margin: 0 0 8px 0; }
+    .markdown-content p:last-child { margin-bottom: 0; }
+    .markdown-content code {
+      background: var(--fill-quinary, #f5f5f5);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .markdown-content pre {
+      background: var(--fill-quinary, #f5f5f5);
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .markdown-content pre code {
+      background: none;
+      padding: 0;
+    }
+    .markdown-content ul, .markdown-content ol {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+    .markdown-content li { margin: 4px 0; }
+    .markdown-content blockquote {
+      border-left: 3px solid var(--fill-tertiary, #ccc);
+      margin: 8px 0;
+      padding-left: 12px;
+      color: var(--fill-secondary, #666);
+    }
+    .markdown-content table {
+      border-collapse: collapse;
+      margin: 8px 0;
+      font-size: 12px;
+    }
+    .markdown-content th, .markdown-content td {
+      border: 1px solid var(--fill-quinary, #ddd);
+      padding: 6px 10px;
+    }
+    .markdown-content th {
+      background: var(--fill-quinary, #f5f5f5);
+    }
+    .markdown-content a {
+      color: #3B82F6;
+      text-decoration: none;
+    }
+    .markdown-content a:hover {
+      text-decoration: underline;
+    }
+    .markdown-content strong { font-weight: 600; }
+    .markdown-content em { font-style: italic; }
+
+    /* KaTeX styles */
+    .katex { font-size: 1.1em; }
+    .katex-display {
+      display: block;
+      margin: 12px 0;
+      text-align: center;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .katex-display > .katex {
+      display: inline-block;
+      text-align: initial;
+    }
+  `;
+}
 
 export class SidePanel {
   private static instance: SidePanel | null = null;
@@ -20,13 +138,8 @@ export class SidePanel {
   private static toggleBtnId = "zotero-agent-toggle-btn";
   private static defaultWidth = 320;
 
-  // Global chat history
-  private static chatHistory: Array<{
-    role: string;
-    content: string;
-    isUser: boolean;
-    id: string;
-  }> = [];
+  // Global chat history (with context)
+  private static chatHistory: ChatMessage[] = [];
   // User input history (for up/down arrow navigation)
   private static inputHistory: string[] = [];
   private static inputHistoryIndex = -1;
@@ -35,8 +148,10 @@ export class SidePanel {
   private static commandMenuIndex = -1;
   // LLM Service
   private static llmService: LLMService | null = null;
-  // Tool registry
-  private static toolRegistry: ToolRegistry | null = null;
+  // Tool registry (using ToolUseRegistry for Function Calling)
+  private static toolRegistry: ToolUseRegistry | null = null;
+  // Session ID to track current chat session (used to discard stale responses)
+  private static sessionId = 0;
 
   private panel: HTMLElement | null = null;
   private toggleBtn: HTMLElement | null = null;
@@ -58,9 +173,9 @@ export class SidePanel {
     return this.llmService;
   }
 
-  static getToolRegistry(): ToolRegistry {
+  static getToolRegistry(): ToolUseRegistry {
     if (!this.toolRegistry) {
-      this.toolRegistry = new ToolRegistry(this.getLLMService());
+      this.toolRegistry = new ToolUseRegistry(this.getLLMService());
     }
     return this.toolRegistry;
   }
@@ -100,6 +215,17 @@ export class SidePanel {
     const defaultLeft = win.innerWidth - 60;
     const defaultTop = win.innerHeight - 128;
 
+    // Clamp saved position to current window bounds
+    let left = savedPos.left ?? defaultLeft;
+    let top = savedPos.top ?? defaultTop;
+    const btnSize = 48;
+    const maxLeft = win.innerWidth - btnSize;
+    const maxTop = win.innerHeight - btnSize;
+    if (left < 0) left = 0;
+    if (left > maxLeft) left = maxLeft;
+    if (top < 0) top = 0;
+    if (top > maxTop) top = maxTop;
+
     this.toggleBtn = doc.createElementNS(
       "http://www.w3.org/1999/xhtml",
       "div",
@@ -107,10 +233,10 @@ export class SidePanel {
     this.toggleBtn.id = SidePanel.toggleBtnId;
     this.toggleBtn.style.cssText = `
       position: fixed;
-      left: ${savedPos.left ?? defaultLeft}px;
-      top: ${savedPos.top ?? defaultTop}px;
-      width: 48px;
-      height: 48px;
+      left: ${left}px;
+      top: ${top}px;
+      width: ${btnSize}px;
+      height: ${btnSize}px;
       border-radius: 50%;
       background: var(--material-background, #fff);
       border: 1px solid var(--fill-quinary, #ddd);
@@ -179,6 +305,23 @@ export class SidePanel {
         if (!hasMoved) {
           this.expand();
         }
+      }
+    });
+
+    // Listen for window resize to keep icon in bounds
+    win.addEventListener("resize", () => {
+      if (!this.toggleBtn || this.toggleBtn.style.display === "none") return;
+      const currentLeft = parseInt(this.toggleBtn.style.left) || 0;
+      const currentTop = parseInt(this.toggleBtn.style.top) || 0;
+      const maxLeft = win.innerWidth - btnSize;
+      const maxTop = win.innerHeight - btnSize;
+      let newLeft = currentLeft;
+      let newTop = currentTop;
+      if (newLeft > maxLeft) newLeft = Math.max(0, maxLeft);
+      if (newTop > maxTop) newTop = Math.max(0, maxTop);
+      if (newLeft !== currentLeft || newTop !== currentTop) {
+        this.toggleBtn.style.left = `${newLeft}px`;
+        this.toggleBtn.style.top = `${newTop}px`;
       }
     });
 
@@ -661,15 +804,25 @@ export class SidePanel {
    * Start new chat
    */
   private startNewChat() {
+    // Increment session ID to invalidate any pending responses
+    SidePanel.sessionId++;
+
     // Clear chat history
     SidePanel.chatHistory = [];
     // Reset tool registry (will clear arXiv search results)
     SidePanel.toolRegistry = null;
 
+    // Reset processing state and enable input
+    this.isProcessing = false;
+    const input = this.panel?.querySelector("#agent-side-panel-input") as HTMLInputElement;
+    if (input) {
+      this.updateInputState(input, false);
+    }
+
     // Re-render welcome message
     this.renderWelcomeMessage();
 
-    Logger.info("SidePanel", "Started new chat");
+    Logger.info("SidePanel", "Started new chat", { sessionId: SidePanel.sessionId });
   }
 
   /**
@@ -727,14 +880,18 @@ export class SidePanel {
     if (!this.messagesContainer) return;
 
     this.messagesContainer.innerHTML = `
-      <div style="color: var(--fill-secondary, #666); font-size: 13px; line-height: 1.6;">
-        <p style="margin: 0 0 12px 0;">你好！我是 Zotero Agent。</p>
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--fill-secondary, #666); font-size: 13px; line-height: 1.6; text-align: center; padding: 20px;">
+        <pre style="font-family: monospace; font-size: 12px; line-height: 1.2; margin: 0 0 16px 0; color: #F5A623;">    __
+___( o)&gt;
+\\ &lt;_. )
+ \`---'</pre>
+        <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: var(--fill-primary, #333);">Zotero Agent</p>
         <p style="margin: 0 0 8px 0;">我可以帮你：</p>
-        <ul style="margin: 0; padding-left: 20px;">
-          <li>总结论文要点</li>
-          <li>解答研究问题</li>
-          <li>在 arXiv 搜索论文</li>
-        </ul>
+        <div style="text-align: left; display: inline-block;">
+          <p style="margin: 4px 0;">• 总结论文要点、解答研究问题</p>
+          <p style="margin: 4px 0;">• 搜索 arXiv / PubMed 论文</p>
+          <p style="margin: 4px 0;">• 批量下载并导入 Zotero</p>
+        </div>
       </div>
     `;
   }
@@ -882,12 +1039,30 @@ export class SidePanel {
 
     Logger.info("SidePanel", "User input", question);
 
-    // Clear welcome message
-    if (this.messagesContainer?.querySelector("ul")) {
-      this.messagesContainer.innerHTML = "";
+    // Clear welcome message (check for welcome content by looking for the centered container)
+    const welcomeContainer = this.messagesContainer?.firstElementChild;
+    if (welcomeContainer && welcomeContainer.getAttribute("style")?.includes("justify-content: center")) {
+      this.messagesContainer!.innerHTML = "";
     }
 
-    this.appendMessage(question, true);
+    // Build context snapshot BEFORE appending message
+    // This captures the current environment (selected papers, text)
+    const ZoteroPane = ztoolkit.getGlobal("ZoteroPane");
+    const selectedItems: Zotero.Item[] = ZoteroPane?.getSelectedItems?.() || [];
+    const selectedText = PDFService.getSelectedText() || undefined;
+
+    // Create paper references (lightweight, not full content)
+    const paperRefs: PaperRef[] = selectedItems.map(item => createPaperRef(item));
+
+    // Build message context
+    const messageContext: MessageContext = {
+      timestamp: Date.now(),
+      papers: paperRefs.length > 0 ? paperRefs : undefined,
+      selectedText: selectedText,
+    };
+
+    // Append user message with context
+    this.appendMessage(question, true, false, messageContext);
     input.value = "";
 
     // Hide command menu
@@ -930,22 +1105,30 @@ export class SidePanel {
     this.isProcessing = true;
     this.updateInputState(input, true);
 
-    const loadingId = this.appendMessage("🤔 Analyzing intent...", false, true);
+    // Capture current session ID to check in callbacks
+    const currentSessionId = SidePanel.sessionId;
+
+    const loadingId = this.appendMessage("🤔 思考中...", false, true);
 
     try {
-      // Build tool execution context
-      const ZoteroPane = ztoolkit.getGlobal("ZoteroPane");
-      const selectedItems = ZoteroPane?.getSelectedItems?.() || [];
+      // Build tool execution context (uses the items we already captured)
       const currentItem = selectedItems.length > 0 ? selectedItems[0] : null;
       const metadata = currentItem
         ? PDFService.getItemMetadata(currentItem)
         : null;
-      const selectedText = PDFService.getSelectedText() || undefined;
+      const allMetadata = selectedItems.map((item) =>
+        PDFService.getItemMetadata(item),
+      );
 
+      // Build context with paper references for history tracking
       const context: ToolContext = {
         currentItem,
+        selectedItems,
         metadata,
+        allMetadata,
         selectedText,
+        paperRefs, // Add paper references for tools to use
+        chatHistory: SidePanel.chatHistory, // Include chat history with context
       };
 
       // Use ToolRegistry to process request
@@ -956,28 +1139,70 @@ export class SidePanel {
       let responseId = "";
       let responseContentDiv: HTMLElement | null = null;
 
+      // Status block management
+      let currentStatusBlockId = loadingId;
+      let hadResponseSinceLastStatus = false;
+
       const result = await toolRegistry.process(question, context, {
         onStatus: (status) => {
-          this.updateLoadingMessage(loadingId, status);
+          // Discard if session changed
+          if (SidePanel.sessionId !== currentSessionId) return;
+          // If there was response since last status, create new block
+          if (hadResponseSinceLastStatus) {
+            currentStatusBlockId = this.appendLoadingMessage(status);
+            hadResponseSinceLastStatus = false;
+          } else {
+            this.updateStatusBlock(currentStatusBlockId, status);
+          }
+        },
+        onToolCall: (event: ToolCallEvent) => {
+          // Discard if session changed
+          if (SidePanel.sessionId !== currentSessionId) return;
+          const statusText = this.formatToolCallStatus(event);
+          // If there was response since last status, create new block
+          if (hadResponseSinceLastStatus) {
+            currentStatusBlockId = this.appendLoadingMessage(statusText);
+            hadResponseSinceLastStatus = false;
+          } else {
+            this.updateStatusBlock(currentStatusBlockId, statusText);
+          }
         },
         onStream: (chunk, fullText) => {
+          // Discard if session changed
+          if (SidePanel.sessionId !== currentSessionId) return;
+
           if (!hasStartedResponse) {
             hasStartedResponse = true;
-            this.removeMessage(loadingId);
+            // Remove current status block when response starts
+            this.removeMessage(currentStatusBlockId);
             responseId = this.appendMessage("", false);
             responseContentDiv = this.messagesContainer?.querySelector(
               `#${responseId} div:last-child`,
             ) as HTMLElement;
+            // Add markdown-content class for streaming
+            if (responseContentDiv) {
+              responseContentDiv.className = "markdown-content";
+              responseContentDiv.style.cssText = `color: var(--fill-primary, #333); word-wrap: break-word; user-select: text; cursor: text;`;
+            }
           }
           if (responseContentDiv) {
-            responseContentDiv.textContent = fullText;
+            // Render markdown for streaming content
+            responseContentDiv.innerHTML = renderMarkdown(fullText, false);
             if (this.messagesContainer) {
               this.messagesContainer.scrollTop =
                 this.messagesContainer.scrollHeight;
             }
+            // Mark that we had response - next status should create new block
+            hadResponseSinceLastStatus = true;
           }
         },
       });
+
+      // Discard result if session changed
+      if (SidePanel.sessionId !== currentSessionId) {
+        Logger.info("SidePanel", "Discarding stale response", { currentSessionId, newSessionId: SidePanel.sessionId });
+        return;
+      }
 
       // Handle non-streaming result
       if (!result.streaming) {
@@ -997,13 +1222,18 @@ export class SidePanel {
         }
       }
     } catch (error: any) {
+      // Discard error if session changed
+      if (SidePanel.sessionId !== currentSessionId) return;
+
       Logger.error("SidePanel", "Error", error.message);
       this.removeMessage(loadingId);
       this.appendMessage(`错误: ${error.message}`, false);
     } finally {
-      // Restore processing state
-      this.isProcessing = false;
-      this.updateInputState(input, false);
+      // Only restore state if still in same session
+      if (SidePanel.sessionId === currentSessionId) {
+        this.isProcessing = false;
+        this.updateInputState(input, false);
+      }
     }
   }
 
@@ -1137,26 +1367,47 @@ export class SidePanel {
 
   /**
    * Append message
+   * @param text Message content
+   * @param isUser Whether this is a user message
+   * @param isLoading Whether this is a loading placeholder (not saved to history)
+   * @param context Optional context snapshot for user messages
    */
   private appendMessage(
     text: string,
     isUser: boolean,
     isLoading = false,
+    context?: MessageContext,
   ): string {
     const msgId = `msg-${Date.now()}`;
     if (!this.messagesContainer) return msgId;
 
     if (!isLoading) {
-      SidePanel.chatHistory.push({
+      const message: ChatMessage = {
         role: isUser ? "user" : "assistant",
         content: text,
         isUser,
         id: msgId,
-      });
+      };
+      // Attach context to user messages
+      if (isUser && context) {
+        message.context = context;
+      }
+      SidePanel.chatHistory.push(message);
     }
 
     const doc = this.messagesContainer.ownerDocument;
     if (!doc) return msgId;
+
+    // Inject markdown styles if not already present
+    if (!doc.getElementById("zotero-agent-markdown-styles")) {
+      const styleEl = doc.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "style",
+      ) as HTMLStyleElement;
+      styleEl.id = "zotero-agent-markdown-styles";
+      styleEl.textContent = getMarkdownStyles();
+      doc.head?.appendChild(styleEl);
+    }
 
     const msgDiv = doc.createElementNS(
       "http://www.w3.org/1999/xhtml",
@@ -1183,8 +1434,15 @@ export class SidePanel {
       "http://www.w3.org/1999/xhtml",
       "div",
     ) as HTMLElement;
-    content.style.cssText = `color: var(--fill-primary, #333); white-space: pre-wrap; word-wrap: break-word; user-select: text; cursor: text; ${isLoading ? "font-style: italic;" : ""}`;
-    content.textContent = text;
+    // Use different styles for user vs agent messages
+    if (isUser || isLoading) {
+      content.style.cssText = `color: var(--fill-primary, #333); white-space: pre-wrap; word-wrap: break-word; user-select: text; cursor: text; ${isLoading ? "font-style: italic;" : ""}`;
+      content.textContent = text;
+    } else {
+      content.className = "markdown-content";
+      content.style.cssText = `color: var(--fill-primary, #333); word-wrap: break-word; user-select: text; cursor: text;`;
+      content.innerHTML = renderMarkdown(text, isUser);
+    }
     msgDiv.appendChild(content);
 
     this.messagesContainer.appendChild(msgDiv);
@@ -1211,6 +1469,52 @@ export class SidePanel {
   }
 
   /**
+   * Update status block (unified status area - overwrites previous status)
+   */
+  private updateStatusBlock(blockId: string, content: string) {
+    const block = this.messagesContainer?.querySelector(`#${blockId}`);
+    if (block) {
+      const contentDiv = block.querySelector("div:last-child");
+      if (contentDiv) {
+        contentDiv.textContent = content;
+      }
+    }
+  }
+
+  /**
+   * Append a new loading/status message and return its ID
+   */
+  private appendLoadingMessage(text: string): string {
+    return this.appendMessage(text, false, true);
+  }
+
+  /**
+   * Format tool call event as status string
+   */
+  private formatToolCallStatus(event: ToolCallEvent): string {
+    const toolDisplayNames: Record<string, string> = {
+      get_paper_content: "读取论文",
+      get_paper_abstracts: "获取摘要",
+      arxiv_search: "搜索 arXiv",
+      arxiv_download: "下载论文",
+      arxiv_download_batch: "批量下载",
+      pubmed_search: "搜索 PubMed",
+      pubmed_download: "下载论文",
+      pubmed_download_batch: "批量下载",
+    };
+    const displayName = toolDisplayNames[event.name] || event.name;
+
+    if (event.status === "running" || event.status === "pending") {
+      return `⏳ ${displayName}...`;
+    } else if (event.status === "completed") {
+      return `✓ ${displayName}`;
+    } else if (event.status === "error") {
+      return `✗ ${displayName}`;
+    }
+    return displayName;
+  }
+
+  /**
    * Update input box state (disable/enable)
    */
   private updateInputState(input: HTMLInputElement, disabled: boolean) {
@@ -1230,6 +1534,17 @@ export class SidePanel {
 
     const doc = this.messagesContainer.ownerDocument;
     if (!doc) return;
+
+    // Inject markdown styles if not already present
+    if (!doc.getElementById("zotero-agent-markdown-styles")) {
+      const styleEl = doc.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "style",
+      ) as HTMLStyleElement;
+      styleEl.id = "zotero-agent-markdown-styles";
+      styleEl.textContent = getMarkdownStyles();
+      doc.head?.appendChild(styleEl);
+    }
 
     this.messagesContainer.innerHTML = "";
     for (const msg of SidePanel.chatHistory) {
@@ -1252,8 +1567,15 @@ export class SidePanel {
         "http://www.w3.org/1999/xhtml",
         "div",
       ) as HTMLElement;
-      content.style.cssText = `color: var(--fill-primary, #333); white-space: pre-wrap; word-wrap: break-word; user-select: text; cursor: text;`;
-      content.textContent = msg.content;
+      // Use different styles for user vs agent messages
+      if (msg.isUser) {
+        content.style.cssText = `color: var(--fill-primary, #333); white-space: pre-wrap; word-wrap: break-word; user-select: text; cursor: text;`;
+        content.textContent = msg.content;
+      } else {
+        content.className = "markdown-content";
+        content.style.cssText = `color: var(--fill-primary, #333); word-wrap: break-word; user-select: text; cursor: text;`;
+        content.innerHTML = renderMarkdown(msg.content, msg.isUser);
+      }
       msgDiv.appendChild(content);
 
       this.messagesContainer.appendChild(msgDiv);
