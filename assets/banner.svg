@@ -19,7 +19,7 @@
   <text x="200" y="85" font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="bold" fill="#ffffff">Zotero Agent</text>
 
   <!-- Tagline -->
-  <text x="200" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a0aec0">搜论文、下论文、问论文，一个插件全搞定</text>
+  <text x="200" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a0aec0">给你的 Zotero 装上大脑</text>
 
   <!-- Decorative dots -->
   <circle cx="550" cy="35" r="4" fill="#4facfe" opacity="0.5"/>

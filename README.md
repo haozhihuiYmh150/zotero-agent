@@ -10,8 +10,12 @@
 </p>
 
 <p align="center">
-  Zotero 7 的 AI 助手插件 —— <b>搜索下载论文 + AI 阅读助手</b>，一个插件搞定。
+  <b>给你的 Zotero 装上大脑</b>
 </p>
+
+Cursor 让 VS Code 有了灵魂，Zotero Agent 让 Zotero 不再只是文献仓库。
+
+它能帮你**搜论文、下论文、读论文、问论文**——你只需要说话，它来干活。
 
 ## 为什么选择 Zotero Agent？
 
