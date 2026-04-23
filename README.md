@@ -7,11 +7,14 @@
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/haozhihuiYmh150/zotero-agent" alt="release"></a>
   <a href="../../releases"><img src="https://img.shields.io/github/downloads/haozhihuiYmh150/zotero-agent/total" alt="downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-blue" alt="License AGPL v3"></a>
+  <img src="https://img.shields.io/badge/Status-Beta-orange" alt="Beta">
 </p>
 
 Cursor 让 VS Code 有了灵魂，Zotero Agent 让 Zotero 不再只是文献仓库。
 
 它能帮你**搜论文、下论文、读论文、问论文**——你只需要说话，它来干活。
+
+> 🚧 **Beta 阶段**：核心功能可用，更多能力持续开发中。欢迎 [反馈建议](../../issues)！
 
 ## 为什么选择 Zotero Agent？
 
