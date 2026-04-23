@@ -54,12 +54,13 @@ text_y_tagline = HEIGHT // 2 + 15
 
 # Try to load fonts (fallback to default if not available)
 try:
-    title_font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 48)
-    tagline_font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 20)
+    # macOS Chinese fonts
+    title_font = ImageFont.truetype("/System/Library/Fonts/PingFang.ttc", 48)
+    tagline_font = ImageFont.truetype("/System/Library/Fonts/PingFang.ttc", 20)
 except:
     try:
-        title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 48)
-        tagline_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 20)
+        title_font = ImageFont.truetype("/System/Library/Fonts/STHeiti Light.ttc", 48)
+        tagline_font = ImageFont.truetype("/System/Library/Fonts/STHeiti Light.ttc", 20)
     except:
         title_font = ImageFont.load_default()
         tagline_font = ImageFont.load_default()
