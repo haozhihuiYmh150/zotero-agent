@@ -1,10 +1,6 @@
 <p align="center">
-  <img src="assets/icon.png" width="120" height="120" alt="Zotero Agent">
+  <img src="assets/banner.png" alt="Zotero Agent" width="800">
 </p>
-
-<h1 align="center">Zotero Agent</h1>
-
-<h3 align="center">给你的 Zotero 装上大脑</h3>
 
 <p align="center">
   <a href="https://www.zotero.org"><img src="https://img.shields.io/badge/Zotero-7-green?logo=zotero" alt="Zotero 7"></a>
