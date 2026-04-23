@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Zotero Agent" width="600">
+  <img src="assets/icon.png" width="120" height="120" alt="Zotero Agent">
 </p>
+
+<h1 align="center">Zotero Agent</h1>
+
+<h3 align="center">给你的 Zotero 装上大脑</h3>
 
 <p align="center">
   <a href="https://www.zotero.org"><img src="https://img.shields.io/badge/Zotero-7-green?logo=zotero" alt="Zotero 7"></a>
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/haozhihuiYmh150/zotero-agent" alt="release"></a>
   <a href="../../releases"><img src="https://img.shields.io/github/downloads/haozhihuiYmh150/zotero-agent/total" alt="downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-blue" alt="License AGPL v3"></a>
-</p>
-
-<p align="center">
-  <b>给你的 Zotero 装上大脑</b>
 </p>
 
 Cursor 让 VS Code 有了灵魂，Zotero Agent 让 Zotero 不再只是文献仓库。
