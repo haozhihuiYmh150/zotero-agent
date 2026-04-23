@@ -53,17 +53,29 @@ text_y_title = HEIGHT // 2 - 35
 text_y_tagline = HEIGHT // 2 + 15
 
 # Try to load fonts (fallback to default if not available)
-try:
-    # macOS Chinese fonts
-    title_font = ImageFont.truetype("/System/Library/Fonts/PingFang.ttc", 48)
-    tagline_font = ImageFont.truetype("/System/Library/Fonts/PingFang.ttc", 20)
-except:
+font_paths = [
+    "/System/Library/AssetsV2/com_apple_MobileAsset_Font7/3419f2a427639ad8c8e139149a287865a90fa17e.asset/AssetData/PingFang.ttc",
+    "/System/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/STHeiti Light.ttc",
+    "/System/Library/Fonts/Hiragino Sans GB.ttc",
+]
+
+title_font = None
+tagline_font = None
+
+for font_path in font_paths:
     try:
-        title_font = ImageFont.truetype("/System/Library/Fonts/STHeiti Light.ttc", 48)
-        tagline_font = ImageFont.truetype("/System/Library/Fonts/STHeiti Light.ttc", 20)
-    except:
-        title_font = ImageFont.load_default()
-        tagline_font = ImageFont.load_default()
+        title_font = ImageFont.truetype(font_path, 48)
+        tagline_font = ImageFont.truetype(font_path, 20)
+        print(f"Using font: {font_path}")
+        break
+    except Exception as e:
+        continue
+
+if title_font is None:
+    title_font = ImageFont.load_default()
+    tagline_font = ImageFont.load_default()
+    print("Using default font")
 
 # Draw title
 draw.text((text_x, text_y_title), "Zotero Agent", font=title_font, fill=TEXT_COLOR)
