@@ -1,39 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200" viewBox="0 0 600 200">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600" height="180" viewBox="0 0 600 180">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
-    </linearGradient>
   </defs>
 
   <!-- Background -->
-  <rect width="600" height="200" rx="12" fill="url(#bg)"/>
+  <rect width="600" height="180" rx="12" fill="url(#bg)"/>
 
-  <!-- Icon circle -->
-  <circle cx="120" cy="100" r="50" fill="#2d3748" stroke="url(#accent)" stroke-width="3"/>
+  <!-- Logo placeholder circle -->
+  <circle cx="110" cy="90" r="55" fill="#2d3748"/>
 
-  <!-- Magnifying glass icon -->
-  <circle cx="110" cy="90" r="20" fill="none" stroke="#4facfe" stroke-width="4"/>
-  <line x1="124" y1="104" x2="138" y2="118" stroke="#4facfe" stroke-width="4" stroke-linecap="round"/>
-
-  <!-- Document icon -->
-  <rect x="118" y="88" width="20" height="26" rx="2" fill="#00f2fe" opacity="0.9"/>
-  <line x1="122" y1="96" x2="134" y2="96" stroke="#1a1a2e" stroke-width="2"/>
-  <line x1="122" y1="102" x2="134" y2="102" stroke="#1a1a2e" stroke-width="2"/>
-  <line x1="122" y1="108" x2="130" y2="108" stroke="#1a1a2e" stroke-width="2"/>
+  <!-- Embed icon.png -->
+  <image x="55" y="35" width="110" height="110" xlink:href="icon.png" />
 
   <!-- Text -->
-  <text x="200" y="95" font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="bold" fill="#ffffff">Zotero Agent</text>
+  <text x="200" y="85" font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="bold" fill="#ffffff">Zotero Agent</text>
 
   <!-- Tagline -->
-  <text x="200" y="130" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a0aec0">Search, Download, Ask — All in One</text>
+  <text x="200" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a0aec0">搜论文、下论文、问论文，一个插件全搞定</text>
 
   <!-- Decorative dots -->
-  <circle cx="550" cy="40" r="4" fill="#4facfe" opacity="0.5"/>
-  <circle cx="530" cy="55" r="3" fill="#00f2fe" opacity="0.4"/>
-  <circle cx="560" cy="70" r="2" fill="#4facfe" opacity="0.3"/>
+  <circle cx="550" cy="35" r="4" fill="#4facfe" opacity="0.5"/>
+  <circle cx="530" cy="50" r="3" fill="#00f2fe" opacity="0.4"/>
+  <circle cx="560" cy="65" r="2" fill="#4facfe" opacity="0.3"/>
 </svg>

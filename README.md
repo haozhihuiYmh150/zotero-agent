@@ -4,8 +4,8 @@
 
 <p align="center">
   <a href="https://www.zotero.org"><img src="https://img.shields.io/badge/Zotero-7-green?logo=zotero" alt="Zotero 7"></a>
-  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/YOUR_USERNAME/zotero-agent" alt="release"></a>
-  <a href="../../releases"><img src="https://img.shields.io/github/downloads/YOUR_USERNAME/zotero-agent/total" alt="downloads"></a>
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/haozhihuiYmh150/zotero-agent" alt="release"></a>
+  <a href="../../releases"><img src="https://img.shields.io/github/downloads/haozhihuiYmh150/zotero-agent/total" alt="downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-blue" alt="License AGPL v3"></a>
 </p>
 
@@ -107,15 +107,15 @@
 
 ## 命令列表
 
-| 命令 | 说明 |
-|------|------|
+| 命令　　　　　　　| 说明　　　　　|
+| -------------------| ---------------|
 | `/apibase <地址>` | 设置 API 地址 |
-| `/apikey <密钥>` | 设置 API 密钥 |
-| `/model <模型名>` | 设置模型 |
-| `/config` | 查看当前配置 |
-| `/clear` | 清空对话历史 |
-| `/help` | 显示帮助 |
-| `/reset` | 重置所有配置 |
+| `/apikey <密钥>`　| 设置 API 密钥 |
+| `/model <模型名>` | 设置模型　　　|
+| `/config`　　　　 | 查看当前配置　|
+| `/clear`　　　　　| 清空对话历史　|
+| `/help`　　　　　 | 显示帮助　　　|
+| `/reset`　　　　　| 重置所有配置　|
 
 ## 常见问题
 
